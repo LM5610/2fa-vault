@@ -44,11 +44,17 @@ func NewServer(v *vault.Vault) *Server {
 // RegisterRoutes registers all REST and SSE endpoints on mux
 func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/vault/status", s.handleVaultStatus)
+	mux.HandleFunc("/api/status", s.handleVaultStatus)
 	mux.HandleFunc("/api/vault/init", s.handleVaultInit)
+	mux.HandleFunc("/api/init", s.handleVaultInit)
 	mux.HandleFunc("/api/vault/unlock", s.handleVaultUnlock)
+	mux.HandleFunc("/api/unlock", s.handleVaultUnlock)
 	mux.HandleFunc("/api/vault/lock", s.handleVaultLock)
+	mux.HandleFunc("/api/lock", s.handleVaultLock)
 	mux.HandleFunc("/api/vault/password", s.handleVaultPassword)
+	mux.HandleFunc("/api/settings/password", s.handleVaultPassword)
 	mux.HandleFunc("/api/vault/autolock", s.handleVaultAutoLock)
+	mux.HandleFunc("/api/settings/autolock", s.handleVaultAutoLock)
 
 	mux.HandleFunc("/api/accounts", s.handleAccounts)
 	mux.HandleFunc("/api/accounts/", s.handleAccountItem)
@@ -213,6 +219,9 @@ func (s *Server) handleAccounts(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		q := r.URL.Query().Get("q")
+		if q == "" {
+			q = r.URL.Query().Get("query")
+		}
 		tag := r.URL.Query().Get("tag")
 		accounts, err := s.vault.ListAccounts(q, tag)
 		if err != nil {
@@ -303,7 +312,7 @@ func (s *Server) handleAccountItem(w http.ResponseWriter, r *http.Request) {
 	if len(parts) > 1 {
 		subAction := parts[1]
 		switch subAction {
-		case "hotp":
+		case "hotp", "increment":
 			if r.Method != http.MethodPost {
 				errorResponse(w, http.StatusMethodNotAllowed, "method not allowed")
 				return
@@ -316,6 +325,34 @@ func (s *Server) handleAccountItem(w http.ResponseWriter, r *http.Request) {
 			jsonResponse(w, http.StatusOK, map[string]any{
 				"code":    code,
 				"counter": counter,
+			})
+			return
+
+		case "qr":
+			acc, err := s.vault.GetAccount(id)
+			if err != nil {
+				errorResponse(w, http.StatusNotFound, err.Error())
+				return
+			}
+			uri := totp.BuildURI(totp.ParsedOTP{
+				Type:      acc.Type,
+				Issuer:    acc.Issuer,
+				Account:   acc.AccountName,
+				Secret:    acc.Secret,
+				Algorithm: acc.Algorithm,
+				Digits:    acc.Digits,
+				Period:    acc.Period,
+				Counter:   acc.Counter,
+			})
+			png, err := qrcode.Encode(uri, qrcode.Medium, 256)
+			if err != nil {
+				errorResponse(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			qrData := "data:image/png;base64," + base64.StdEncoding.EncodeToString(png)
+			jsonResponse(w, http.StatusOK, map[string]string{
+				"qr_data":     qrData,
+				"otpauth_uri": uri,
 			})
 			return
 
