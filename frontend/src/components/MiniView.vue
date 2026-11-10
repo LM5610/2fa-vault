@@ -105,7 +105,10 @@
             </span>
             <span
               v-else
-              class="font-mono text-base font-extrabold tracking-wider text-slate-900 dark:text-white"
+              class="font-mono text-base font-extrabold tracking-wider transition-all duration-300"
+              :class="remaining(acc) <= 5
+                ? 'text-rose-600 dark:text-rose-400 drop-shadow-[0_0_6px_rgba(244,63,94,0.4)] animate-pulse'
+                : 'text-slate-900 dark:text-white'"
             >
               {{ formatCode(acc.code) }}
             </span>
@@ -155,6 +158,7 @@ import { useVault } from '../composables/useVault';
 import { useTheme } from '../composables/useTheme';
 import { useToast } from '../composables/useToast';
 import { getBrandLogo } from '../utils/brandIcons';
+import { copyWithAutoClear } from '../utils/clipboard';
 
 defineEmits<{
   (e: 'exit-mini'): void;
@@ -216,23 +220,12 @@ async function copyCode(acc: Account) {
   const code = acc.code;
   if (!code || code === '------') return;
 
-  try {
-    await navigator.clipboard.writeText(code);
-    copiedId.value = acc.id;
-    showToast(`已复制 ${acc.issuer || acc.account_name} 动态码: ${code}`);
-    setTimeout(() => {
-      if (copiedId.value === acc.id) {
-        copiedId.value = null;
-      }
-    }, 1500);
-  } catch {
-    // Fallback
-    const input = document.createElement('input');
-    input.value = code;
-    document.body.appendChild(input);
-    input.select();
-    document.execCommand('copy');
-    document.body.removeChild(input);
+  const success = await copyWithAutoClear(
+    code,
+    `${getDisplayTitle(acc)} 动态码: ${code}`,
+    showToast
+  );
+  if (success) {
     copiedId.value = acc.id;
     setTimeout(() => {
       if (copiedId.value === acc.id) {

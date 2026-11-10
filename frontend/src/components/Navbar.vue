@@ -122,8 +122,8 @@
         @click="activeTag = activeTag === tag ? '' : tag"
         class="px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all"
         :class="activeTag === tag
-          ? 'bg-brand-600 text-white shadow-sm'
-          : 'bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'"
+          ? getTagColor(tag).activeBadge
+          : getTagColor(tag).badge"
       >
         #{{ tag }}
       </button>
@@ -135,6 +135,7 @@
 import { ShieldCheck, Plus, Search, ArrowUpDown, Sun, Moon, Settings, Lock, Wifi, Minimize2 } from 'lucide-vue-next';
 import { useVault } from '../composables/useVault';
 import { useTheme } from '../composables/useTheme';
+import { getTagColor } from '../utils/tagColors';
 
 defineEmits<{
   (e: 'open-add'): void;

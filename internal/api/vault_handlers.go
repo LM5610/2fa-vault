@@ -148,3 +148,45 @@ func (s *Server) handleVaultAutoLock(w http.ResponseWriter, r *http.Request) {
 		"minutes": req.Minutes,
 	})
 }
+
+// Vault Snapshots: GET /api/vault/snapshots
+func (s *Server) handleListSnapshots(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		errorResponse(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	snapshots, err := s.vault.ListSnapshots()
+	if err != nil {
+		errorResponse(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	jsonResponse(w, http.StatusOK, snapshots)
+}
+
+// Vault Snapshot Rollback: POST /api/vault/snapshots/rollback
+func (s *Server) handleRollbackSnapshot(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		errorResponse(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	var req struct {
+		Filename string `json:"filename"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		errorResponse(w, http.StatusBadRequest, "invalid json body")
+		return
+	}
+
+	if err := s.vault.RollbackSnapshot(req.Filename); err != nil {
+		errorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	jsonResponse(w, http.StatusOK, map[string]any{
+		"success": true,
+		"message": "vault successfully rolled back to snapshot",
+	})
+}

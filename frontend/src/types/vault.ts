@@ -78,3 +78,9 @@ export interface QRDecodeResponse {
     counter?: number;
   };
 }
+
+export interface SnapshotInfo {
+  filename: string;
+  size_bytes: number;
+  created_at: string;
+}

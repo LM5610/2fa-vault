@@ -700,5 +700,146 @@ func (v *Vault) saveUnlocked() error {
 		return fmt.Errorf("atomic rename failed: %w", err)
 	}
 
+	// Auto-create encrypted rolling snapshot
+	v.createSnapshot(encrypted)
+
+	return nil
+}
+
+// SnapshotInfo represents metadata of an encrypted rolling backup
+type SnapshotInfo struct {
+	Filename  string    `json:"filename"`
+	SizeBytes int64     `json:"size_bytes"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// createSnapshot creates an encrypted backup snapshot and keeps the latest 10 versions
+func (v *Vault) createSnapshot(encrypted []byte) {
+	backupDir := filepath.Join(filepath.Dir(v.storagePath), "backups")
+	_ = os.MkdirAll(backupDir, 0700)
+
+	timestamp := fmt.Sprintf("%s_%03d", time.Now().Format("20060102_150405"), time.Now().Nanosecond()/1e6)
+	snapshotName := fmt.Sprintf("vault_%s.enc", timestamp)
+	snapshotPath := filepath.Join(backupDir, snapshotName)
+
+	_ = os.WriteFile(snapshotPath, encrypted, 0600)
+
+	// Keep only the latest 10 snapshots
+	files, err := os.ReadDir(backupDir)
+	if err != nil {
+		return
+	}
+
+	var snapshots []os.DirEntry
+	for _, f := range files {
+		if !f.IsDir() && strings.HasPrefix(f.Name(), "vault_") && strings.HasSuffix(f.Name(), ".enc") {
+			snapshots = append(snapshots, f)
+		}
+	}
+
+	sort.Slice(snapshots, func(i, j int) bool {
+		return snapshots[i].Name() < snapshots[j].Name()
+	})
+
+	if len(snapshots) > 10 {
+		toDelete := snapshots[:len(snapshots)-10]
+		for _, f := range toDelete {
+			_ = os.Remove(filepath.Join(backupDir, f.Name()))
+		}
+	}
+}
+
+// ListSnapshots returns all backup snapshots sorted by newest first
+func (v *Vault) ListSnapshots() ([]SnapshotInfo, error) {
+	v.mu.RLock()
+	defer v.mu.RUnlock()
+
+	backupDir := filepath.Join(filepath.Dir(v.storagePath), "backups")
+	files, err := os.ReadDir(backupDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return []SnapshotInfo{}, nil
+		}
+		return nil, err
+	}
+
+	var results []SnapshotInfo
+	for _, f := range files {
+		if !f.IsDir() && strings.HasPrefix(f.Name(), "vault_") && strings.HasSuffix(f.Name(), ".enc") {
+			info, err := f.Info()
+			if err != nil {
+				continue
+			}
+			timeStr := strings.TrimPrefix(strings.TrimSuffix(f.Name(), ".enc"), "vault_")
+			createdAt, parseErr := time.Parse("20060102_150405_000", timeStr)
+			if parseErr != nil {
+				createdAt, parseErr = time.Parse("20060102_150405", timeStr)
+				if parseErr != nil {
+					createdAt = info.ModTime()
+				}
+			}
+
+			results = append(results, SnapshotInfo{
+				Filename:  f.Name(),
+				SizeBytes: info.Size(),
+				CreatedAt: createdAt,
+			})
+		}
+	}
+
+	// Sort newest first
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].CreatedAt.After(results[j].CreatedAt)
+	})
+
+	return results, nil
+}
+
+// RollbackSnapshot restores the vault from a snapshot file
+func (v *Vault) RollbackSnapshot(filename string) error {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
+	if v.locked || v.data == nil {
+		return ErrVaultLocked
+	}
+
+	// Validate filename to prevent path traversal
+	cleaned := filepath.Base(filename)
+	if cleaned != filename || !strings.HasPrefix(filename, "vault_") || !strings.HasSuffix(filename, ".enc") {
+		return errors.New("invalid snapshot filename")
+	}
+
+	backupDir := filepath.Join(filepath.Dir(v.storagePath), "backups")
+	snapshotPath := filepath.Join(backupDir, cleaned)
+
+	encrypted, err := os.ReadFile(snapshotPath)
+	if err != nil {
+		return fmt.Errorf("read snapshot failed: %w", err)
+	}
+
+	// Attempt decrypt with current master password
+	decrypted, err := crypto.Decrypt(encrypted, v.passphrase)
+	if err != nil {
+		return fmt.Errorf("failed to decrypt snapshot with current master password: %w", err)
+	}
+
+	var data VaultData
+	if err := json.Unmarshal(decrypted, &data); err != nil {
+		return fmt.Errorf("snapshot data corrupted: %w", err)
+	}
+
+	// Apply restored data
+	v.data = &data
+
+	// Write directly to main storage
+	if err := os.WriteFile(v.storagePath, encrypted, 0600); err != nil {
+		return fmt.Errorf("write restored vault failed: %w", err)
+	}
+
+	// Create a new snapshot recording this rollback
+	v.createSnapshot(encrypted)
+	v.resetAutoLockTimer()
+
 	return nil
 }

@@ -39,6 +39,8 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/settings/password", s.handleVaultPassword)
 	mux.HandleFunc("/api/vault/autolock", s.handleVaultAutoLock)
 	mux.HandleFunc("/api/settings/autolock", s.handleVaultAutoLock)
+	mux.HandleFunc("/api/vault/snapshots", s.handleListSnapshots)
+	mux.HandleFunc("/api/vault/snapshots/rollback", s.handleRollbackSnapshot)
 
 	// Account management
 	mux.HandleFunc("/api/accounts/reorder", s.handleReorderAccounts)

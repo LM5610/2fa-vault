@@ -1,10 +1,17 @@
 <template>
   <div
-    class="group relative flex flex-col justify-between rounded-2xl border bg-white dark:bg-slate-900/90 p-5 shadow-sm hover:shadow-md transition-all duration-200"
+    class="group relative flex flex-col justify-between rounded-2xl border bg-white dark:bg-slate-900/90 p-5 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden"
     :class="account.pinned
       ? 'border-brand-500/50 shadow-brand-500/5 ring-1 ring-brand-500/20'
       : 'border-slate-200/80 dark:border-slate-800/80 hover:border-brand-500/40'"
   >
+    <!-- Top Glowing Gradient Accent Bar for Tags -->
+    <div
+      v-if="cardGradient"
+      class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r opacity-85 transition-opacity"
+      :class="cardGradient"
+    ></div>
+
     <!-- Card Header -->
     <div class="flex items-start justify-between gap-3 mb-4">
       <div class="flex items-center gap-3 min-w-0">
@@ -85,13 +92,28 @@
     <!-- Code Display Box -->
     <div
       @click="copyCode"
-      class="group/code relative flex items-center justify-between rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 p-3 px-4 cursor-pointer hover:border-brand-500/30 hover:bg-brand-500/5 transition-all select-none"
+      class="group/code relative flex items-center justify-between rounded-xl border p-3 px-4 cursor-pointer transition-all select-none"
+      :class="isExpiring
+        ? 'border-rose-400/50 bg-rose-50/40 dark:bg-rose-950/20 shadow-sm shadow-rose-500/10'
+        : 'border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 hover:border-brand-500/30 hover:bg-brand-500/5'"
     >
       <div class="flex flex-col">
-        <span class="font-mono text-2xl font-bold tracking-wider text-slate-900 dark:text-white">
+        <span
+          class="font-mono text-2xl font-bold tracking-wider transition-all duration-300"
+          :class="isExpiring
+            ? 'text-rose-600 dark:text-rose-400 drop-shadow-[0_0_8px_rgba(244,63,94,0.4)] animate-pulse'
+            : 'text-slate-900 dark:text-white'"
+        >
           {{ formattedCode }}
         </span>
-        <span v-if="copied" class="text-[11px] font-semibold text-emerald-500 animate-pulse">
+        <span
+          v-if="isExpiring && !copied"
+          class="text-[11px] font-semibold text-rose-500 flex items-center gap-1 animate-pulse"
+        >
+          <Clock :size="12" />
+          即将失效 · 请稍候
+        </span>
+        <span v-else-if="copied" class="text-[11px] font-semibold text-emerald-500 animate-pulse">
           ✓ 已复制到剪贴板
         </span>
         <span v-else class="text-[11px] text-slate-400 group-hover/code:text-brand-500 transition-colors">
@@ -192,12 +214,13 @@
       </div>
     </div>
 
-    <!-- Tags Strip -->
+    <!-- Tags Strip (Colorful Categorized Badges) -->
     <div v-if="account.tags && account.tags.length > 0" class="flex flex-wrap gap-1.5 mt-3">
       <span
         v-for="tag in account.tags"
         :key="tag"
-        class="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[11px] font-medium"
+        class="px-2 py-0.5 rounded-lg text-[11px] font-semibold transition-all select-none"
+        :class="getTagColor(tag).badge"
       >
         #{{ tag }}
       </span>
@@ -207,12 +230,14 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { QrCode, Edit3, Trash2, RefreshCw, Pin, KeyRound, ChevronDown, Copy } from 'lucide-vue-next';
+import { QrCode, Edit3, Trash2, RefreshCw, Pin, KeyRound, ChevronDown, Copy, Clock } from 'lucide-vue-next';
 import type { Account } from '../types/vault';
 import { useVault } from '../composables/useVault';
 import { useToast } from '../composables/useToast';
 import { API } from '../api/client';
 import { getBrandLogo } from '../utils/brandIcons';
+import { getTagColor, getCardTagGradient } from '../utils/tagColors';
+import { copyWithAutoClear } from '../utils/clipboard';
 
 const props = defineProps<{
   account: Account;
@@ -243,6 +268,10 @@ const displayTitle = computed(() => {
   }
   return props.account.issuer || props.account.account_name || '未命名服务';
 });
+
+const cardGradient = computed(() => getCardTagGradient(props.account.tags));
+
+const isExpiring = computed(() => props.account.type !== 'hotp' && remainingSeconds.value <= 5);
 
 const avatarChar = computed(() => {
   const name = props.account.issuer || props.account.account_name || '2';
@@ -306,23 +335,25 @@ async function toggleRecovery(index: number) {
   }
 }
 
-function copySingleRecovery(code: string) {
-  navigator.clipboard.writeText(code).then(() => {
-    showToast(`已复制恢复码: ${code}`);
-  });
+async function copySingleRecovery(code: string) {
+  await copyWithAutoClear(code, '恢复备用码', showToast);
 }
 
-function copyCode() {
+async function copyCode() {
   const raw = props.account.code || '';
   if (!raw || raw === '------') return;
 
-  navigator.clipboard.writeText(raw).then(() => {
+  const success = await copyWithAutoClear(
+    raw,
+    `${displayTitle.value} 验证码`,
+    showToast
+  );
+  if (success) {
     copied.value = true;
-    showToast(`已复制验证码: ${raw}`);
     setTimeout(() => {
       copied.value = false;
     }, 2000);
-  });
+  }
 }
 
 async function incrementHOTP() {

@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"twofa-vault/pkg/totp"
 )
@@ -138,4 +139,74 @@ func TestVault_Lifecycle(t *testing.T) {
 	}
 
 	_ = os.Remove(vaultPath)
+}
+
+func TestVault_SnapshotsAndRollback(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "2fa-vault-snapshot-test-*")
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	vaultPath := filepath.Join(tmpDir, "vault.enc")
+	v := New(vaultPath)
+
+	password := "SecretPass123"
+	if err := v.Init(password); err != nil {
+		t.Fatalf("Init failed: %v", err)
+	}
+
+	time.Sleep(10 * time.Millisecond)
+
+	// Add an account
+	acc, err := v.AddAccount(Account{
+		Issuer:      "GitHub",
+		AccountName: "dev-user",
+		Secret:      "JBSWY3DPEHPK3PXP",
+	})
+	if err != nil {
+		t.Fatalf("AddAccount failed: %v", err)
+	}
+
+	time.Sleep(10 * time.Millisecond)
+
+	// Verify snapshots were created
+	snapshots, err := v.ListSnapshots()
+	if err != nil {
+		t.Fatalf("ListSnapshots failed: %v", err)
+	}
+	if len(snapshots) == 0 {
+		t.Fatal("expected at least 1 snapshot")
+	}
+
+	snapshotWithAccount := snapshots[0].Filename
+
+	// Now delete account
+	if err := v.DeleteAccount(acc.ID); err != nil {
+		t.Fatalf("DeleteAccount failed: %v", err)
+	}
+
+	time.Sleep(10 * time.Millisecond)
+
+	listAfterDel, _ := v.ListAccounts("", "")
+	if len(listAfterDel) != 0 {
+		t.Fatalf("expected 0 accounts, got %d", len(listAfterDel))
+	}
+
+	// Rollback to snapshotWithAccount
+	if err := v.RollbackSnapshot(snapshotWithAccount); err != nil {
+		t.Fatalf("RollbackSnapshot failed: %v", err)
+	}
+
+	// Verify account is restored!
+	restoredList, err := v.ListAccounts("", "")
+	if err != nil {
+		t.Fatalf("ListAccounts after rollback failed: %v", err)
+	}
+	if len(restoredList) != 1 {
+		t.Fatalf("expected 1 restored account, got %d", len(restoredList))
+	}
+	if restoredList[0].Issuer != "GitHub" {
+		t.Fatalf("expected restored issuer GitHub, got %s", restoredList[0].Issuer)
+	}
 }

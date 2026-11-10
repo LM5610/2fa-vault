@@ -1,4 +1,4 @@
-import type { Account, VaultStatus, OTPPreviewRequest, OTPPreviewResponse, QRDecodeResponse, SyncInfoResponse, SyncPairInitResponse } from '../types/vault';
+import type { Account, VaultStatus, OTPPreviewRequest, OTPPreviewResponse, QRDecodeResponse, SyncInfoResponse, SyncPairInitResponse, SnapshotInfo } from '../types/vault';
 
 async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const res = await fetch(endpoint, {
@@ -48,6 +48,13 @@ export const API = {
   getTags: () => request<string[]>('/api/tags'),
   getExportData: (format: 'json' | 'uri' = 'json') => request<{ data: string; format: string }>(`/api/export?format=${format}`),
   importData: (data: string) => request<{ imported: number }>('/api/import', { method: 'POST', body: JSON.stringify({ data }) }),
+
+  // Snapshots & Rollback
+  getSnapshots: () => request<SnapshotInfo[]>('/api/vault/snapshots'),
+  rollbackSnapshot: (filename: string) => request<{ success: boolean; message: string }>('/api/vault/snapshots/rollback', {
+    method: 'POST',
+    body: JSON.stringify({ filename }),
+  }),
 
   // LAN Direct Sync
   getSyncInfo: () => request<SyncInfoResponse>('/api/sync/info'),
