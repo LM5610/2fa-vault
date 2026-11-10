@@ -19,13 +19,13 @@ import (
 	"twofa-vault/pkg/vault"
 )
 
-const version = "1.0.0"
+const version = "2.0.0"
 
 func main() {
 	portFlag := flag.Int("port", 2233, "HTTP server listening port")
 	hostFlag := flag.String("host", "0.0.0.0", "HTTP server listening host (0.0.0.0 allows iOS / LAN devices to connect)")
 	dataFlag := flag.String("data", "data/vault.enc", "Path to encrypted vault data file")
-	noBrowserFlag := flag.Bool("no-browser", false, "Do not automatically open default browser on startup")
+	noWindowFlag := flag.Bool("no-window", false, "Do not launch standalone desktop window")
 	headlessFlag := flag.Bool("headless", false, "Run in headless server/daemon mode")
 	versionFlag := flag.Bool("version", false, "Show version and exit")
 
@@ -78,47 +78,45 @@ func main() {
 		}
 	}()
 
-	// Automatically open browser on Windows unless disabled
-	if !*noBrowserFlag && !*headlessFlag {
+	// Channel for graceful shutdown
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+
+	// Automatically launch standalone native desktop window on Windows unless disabled
+	if !*noWindowFlag && !*headlessFlag {
 		localURL := fmt.Sprintf("http://127.0.0.1:%d", *portFlag)
 		go func() {
-			time.Sleep(300 * time.Millisecond)
-			openBrowser(localURL)
+			time.Sleep(200 * time.Millisecond)
+			launchDesktopApp(localURL, func() {
+				// Standalone desktop window was closed by the user
+				select {
+				case quit <- os.Interrupt:
+				default:
+				}
+			})
 		}()
 	}
 
-	// Wait for interrupt signal to gracefully shut down the server
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	// Wait for window close or interrupt signal
 	<-quit
 
-	fmt.Println("\n[2FA Vault] Shutting down gracefully, locking vault...")
 	v.Lock()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-
-	if err := srv.Shutdown(ctx); err != nil {
-		fmt.Printf("Server forced shutdown: %v\n", err)
-	}
-
-	fmt.Println("[2FA Vault] Goodbye!")
+	_ = srv.Shutdown(ctx)
 }
 
 func printBanner(port int, dataPath string, lanIPs []string) {
 	fmt.Println("================================================================")
-	fmt.Printf("  2FA Vault v%s - Secure Cross-Platform Authenticator\n", version)
-	fmt.Println("  Modular Go Backend · AES-256-GCM + Argon2id · Windows & iOS PWA")
+	fmt.Printf("  2FA Vault v%s - Standalone Native Desktop Application\n", version)
+	fmt.Println("  Modular Go Backend · AES-256-GCM + Argon2id · Windows Desktop & iOS")
 	fmt.Println("================================================================")
-	fmt.Printf("  • Local Access (Windows) : http://127.0.0.1:%d\n", port)
+	fmt.Printf("  • Local Desktop URL      : http://127.0.0.1:%d\n", port)
 	for _, ip := range lanIPs {
 		fmt.Printf("  • iOS / Mobile Access    : http://%s:%d\n", ip, port)
 	}
 	fmt.Printf("  • Encrypted Vault File   : %s\n", dataPath)
-	fmt.Println("----------------------------------------------------------------")
-	fmt.Println("  Tips for iOS: Open the mobile URL in Safari, then tap:")
-	fmt.Println("  Share (分享) -> Add to Home Screen (添加到主屏幕) for full PWA!")
-	fmt.Println("  Press Ctrl+C to safely lock vault and quit.")
 	fmt.Println("================================================================")
 }
 
@@ -138,6 +136,69 @@ func getLocalIPs() []string {
 	return ips
 }
 
+func launchDesktopApp(appURL string, onWindowClose func()) {
+	if runtime.GOOS == "windows" {
+		edgePaths := []string{
+			`C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`,
+			`C:\Program Files\Microsoft\Edge\Application\msedge.exe`,
+			`C:\Program Files\Google\Chrome\Application\chrome.exe`,
+			`C:\Program Files (x86)\Google\Chrome\Application\chrome.exe`,
+		}
+
+		if localApp := os.Getenv("LOCALAPPDATA"); localApp != "" {
+			edgePaths = append(edgePaths,
+				filepath.Join(localApp, `Microsoft\Edge\Application\msedge.exe`),
+				filepath.Join(localApp, `Google\Chrome\Application\chrome.exe`),
+			)
+		}
+
+		var targetExe string
+		for _, p := range edgePaths {
+			if _, err := os.Stat(p); err == nil {
+				targetExe = p
+				break
+			}
+		}
+
+		if targetExe == "" {
+			if path, err := exec.LookPath("msedge.exe"); err == nil {
+				targetExe = path
+			} else if path, err := exec.LookPath("chrome.exe"); err == nil {
+				targetExe = path
+			}
+		}
+
+		if targetExe != "" {
+			profileDir := filepath.Join(os.Getenv("LOCALAPPDATA"), "2FA-Vault", "app_profile")
+			_ = os.MkdirAll(profileDir, 0700)
+
+			args := []string{
+				fmt.Sprintf("--app=%s", appURL),
+				"--window-size=1120,780",
+				fmt.Sprintf("--user-data-dir=%s", profileDir),
+				"--disable-features=Translate,OptimizationHints",
+				"--disable-extensions",
+				"--no-first-run",
+				"--no-default-browser-check",
+			}
+
+			cmd := exec.Command(targetExe, args...)
+			if err := cmd.Start(); err == nil {
+				if onWindowClose != nil {
+					go func() {
+						_ = cmd.Wait()
+						onWindowClose()
+					}()
+				}
+				return
+			}
+		}
+	}
+
+	// Fallback to standard browser launch if app window mode is unavailable
+	openBrowser(appURL)
+}
+
 func openBrowser(url string) {
 	var err error
 	switch runtime.GOOS {
@@ -150,7 +211,5 @@ func openBrowser(url string) {
 	default:
 		err = fmt.Errorf("unsupported platform")
 	}
-	if err != nil {
-		// Silent ignore if browser launcher fails
-	}
+	_ = err
 }

@@ -302,6 +302,13 @@ function handleKeyDown(e: KeyboardEvent) {
   } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'l') {
     e.preventDefault();
     if (isUnlocked.value) lock();
+  } else if (e.key === 'F5' || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'r')) {
+    e.preventDefault();
+    if (isUnlocked.value) {
+      refreshAccounts();
+      refreshTags();
+      showToast('已刷新 2FA 令牌数据');
+    }
   } else if (e.key === 'Escape') {
     showAddModal.value = false;
     showSettingsModal.value = false;
@@ -309,6 +316,14 @@ function handleKeyDown(e: KeyboardEvent) {
     showSyncModal.value = false;
     selectedAccountForQR.value = null;
   }
+}
+
+function handleContextMenu(e: MouseEvent) {
+  const target = e.target as HTMLElement;
+  if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+    return;
+  }
+  e.preventDefault();
 }
 
 onMounted(async () => {
@@ -319,6 +334,7 @@ onMounted(async () => {
   }
   startClock();
 
+  window.addEventListener('contextmenu', handleContextMenu);
   window.addEventListener('dragenter', handleDragEnter);
   window.addEventListener('dragover', (e) => e.preventDefault());
   window.addEventListener('dragleave', handleDragLeave);
@@ -328,6 +344,7 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  window.removeEventListener('contextmenu', handleContextMenu);
   window.removeEventListener('dragenter', handleDragEnter);
   window.removeEventListener('dragleave', handleDragLeave);
   window.removeEventListener('drop', handleGlobalDrop);
