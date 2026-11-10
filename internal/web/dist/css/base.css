@@ -13,6 +13,11 @@ body {
     radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.12) 0%, transparent 40%),
     radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 40%);
   background-attachment: fixed;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-heading);
 }
 
 /* Layout Container */
@@ -62,6 +67,7 @@ header {
   font-size: 1.25rem;
   font-weight: 700;
   letter-spacing: -0.02em;
+  color: var(--text-heading);
 }
 
 .brand-text span {
@@ -104,20 +110,19 @@ header {
 }
 
 .btn-ghost {
-  background: var(--bg-card);
-  color: var(--text-main);
-  border-color: var(--border-color);
-  backdrop-filter: var(--glass-blur);
+  background: var(--btn-ghost-bg);
+  color: var(--btn-ghost-text);
+  border: 1px solid var(--border-color);
 }
 .btn-ghost:hover {
-  background: var(--bg-card-hover);
+  background: var(--btn-ghost-hover);
   border-color: var(--border-color-hover);
 }
 
 .btn-icloud {
   background: rgba(2, 132, 199, 0.15);
   color: #38bdf8;
-  border-color: rgba(2, 132, 199, 0.3);
+  border: 1px solid rgba(2, 132, 199, 0.35);
 }
 .btn-icloud:hover {
   background: var(--icloud-blue);
@@ -132,8 +137,8 @@ header {
 }
 
 .btn-icon-sm {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   padding: 6px;
   border-radius: 8px;
   background: transparent;
@@ -146,8 +151,8 @@ header {
   transition: color 0.15s, background-color 0.15s;
 }
 .btn-icon-sm:hover {
-  color: var(--text-main);
-  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-heading);
+  background: var(--border-color);
 }
 .btn-icon-sm.pinned {
   color: #fbbf24;
@@ -156,7 +161,7 @@ header {
 .btn-danger {
   background: rgba(239, 68, 68, 0.15);
   color: var(--danger);
-  border-color: rgba(239, 68, 68, 0.3);
+  border: 1px solid rgba(239, 68, 68, 0.3);
 }
 .btn-danger:hover {
   background: var(--danger);
@@ -195,9 +200,12 @@ header {
   background: var(--bg-card);
   color: var(--text-main);
   font-size: 0.95rem;
-  backdrop-filter: var(--glass-blur);
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.search-input::placeholder {
+  color: var(--text-placeholder);
 }
 
 .search-input:focus {
@@ -217,9 +225,9 @@ header {
 }
 
 .tag-pill {
-  padding: 5px 12px;
+  padding: 6px 14px;
   border-radius: 20px;
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   font-weight: 500;
   background: var(--bg-card);
   color: var(--text-muted);
@@ -227,6 +235,11 @@ header {
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.15s ease;
+}
+
+.tag-pill:hover {
+  color: var(--text-heading);
+  border-color: var(--border-color-hover);
 }
 
 .tag-pill.active {

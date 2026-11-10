@@ -61,27 +61,27 @@ export function setupTheme() {
   const savedTheme = localStorage.getItem('2fa_theme') || 'dark';
   applyTheme(savedTheme);
 
-  const btn = document.getElementById('themeToggleBtn');
-  if (btn) {
+  document.querySelectorAll('.theme-segment-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      const nextTheme = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
-      applyTheme(nextTheme);
+      const theme = btn.getAttribute('data-theme');
+      applyTheme(theme);
     });
-  }
+  });
 }
 
 export function applyTheme(theme) {
-  const toggleText = document.getElementById('themeToggleText');
   if (theme === 'light') {
     document.documentElement.classList.remove('dark');
     document.documentElement.classList.add('light');
-    if (toggleText) toggleText.textContent = '☀️ 切换为暗色模式';
   } else {
     document.documentElement.classList.remove('light');
     document.documentElement.classList.add('dark');
-    if (toggleText) toggleText.textContent = '🌙 切换为亮色模式';
   }
   localStorage.setItem('2fa_theme', theme);
+
+  document.querySelectorAll('.theme-segment-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-theme') === theme);
+  });
 }
 
 export function renderTagPills() {

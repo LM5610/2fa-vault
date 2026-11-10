@@ -24,7 +24,7 @@
 .account-card:hover {
   border-color: var(--border-color-hover);
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
 .card-header {
@@ -63,7 +63,8 @@
 
 .issuer-title {
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
+  color: var(--text-heading);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -85,18 +86,17 @@
 
 /* OTP Code Section */
 .code-box {
-  background: rgba(0, 0, 0, 0.25);
+  background: var(--bg-input);
   border-radius: 12px;
   padding: 12px 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-color);
   transition: background 0.15s, border-color 0.15s;
 }
 .code-box:hover {
-  background: rgba(0, 0, 0, 0.35);
   border-color: var(--accent);
 }
 .code-box:active {
@@ -108,7 +108,7 @@
   font-size: 1.6rem;
   font-weight: 700;
   letter-spacing: 0.08em;
-  color: var(--text-main);
+  color: var(--text-heading);
   user-select: all;
 }
 
@@ -130,7 +130,7 @@
 
 .timer-bg {
   fill: none;
-  stroke: rgba(255, 255, 255, 0.1);
+  stroke: var(--border-color);
   stroke-width: 3.5;
 }
 
@@ -158,24 +158,26 @@
   align-items: center;
   justify-content: space-between;
   font-size: 0.75rem;
-  color: var(--text-sub);
+  color: var(--text-muted);
 }
 
 .badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 8px;
+  padding: 3px 8px;
   border-radius: 6px;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 600;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--bg-dialog-header);
   color: var(--text-muted);
+  border: 1px solid var(--border-color);
 }
 
 .badge-steam {
   background: rgba(56, 189, 248, 0.15);
   color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.3);
 }
 
 /* Empty State */
