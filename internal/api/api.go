@@ -58,6 +58,7 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/qr/decode-url", s.handleQRDecodeURL)
 	mux.HandleFunc("/api/qr/decode-file", s.handleQRDecodeFile)
 	mux.HandleFunc("/api/proxy-image", s.handleProxyImage)
+	mux.HandleFunc("/api/otp/preview", s.handleOTPPreview)
 
 	mux.HandleFunc("/api/import", s.handleImport)
 	mux.HandleFunc("/api/export", s.handleExport)
@@ -584,6 +585,92 @@ func (s *Server) handleProxyImage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "public, max-age=3600")
 	w.WriteHeader(resp.StatusCode)
 	_, _ = io.Copy(w, resp.Body)
+}
+
+// Real-time live OTP code preview endpoint: GET /api/otp/preview
+func (s *Server) handleOTPPreview(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	secret := strings.TrimSpace(q.Get("secret"))
+	if secret == "" {
+		jsonResponse(w, http.StatusOK, map[string]any{"valid": false, "error": "secret is empty"})
+		return
+	}
+
+	cleaned, err := totp.CleanSecret(secret)
+	if err != nil {
+		jsonResponse(w, http.StatusOK, map[string]any{"valid": false, "error": err.Error()})
+		return
+	}
+
+	algo := totp.Algorithm(q.Get("algorithm"))
+	if algo == "" {
+		algo = totp.AlgorithmSHA1
+	}
+
+	digits := 6
+	if d := q.Get("digits"); d != "" {
+		if v, err := strconv.Atoi(d); err == nil && v > 0 {
+			digits = v
+		}
+	}
+
+	period := 30
+	if p := q.Get("period"); p != "" {
+		if v, err := strconv.Atoi(p); err == nil && v > 0 {
+			period = v
+		}
+	}
+
+	otpType := totp.OTPType(q.Get("type"))
+	if otpType == "" {
+		otpType = totp.TypeTOTP
+	}
+
+	var counter uint64 = 0
+	if c := q.Get("counter"); c != "" {
+		if v, err := strconv.ParseUint(c, 10, 64); err == nil {
+			counter = v
+		}
+	}
+
+	opts := totp.Options{
+		Secret:    cleaned,
+		Algorithm: algo,
+		Digits:    digits,
+		Period:    period,
+		Type:      otpType,
+		Counter:   counter,
+	}
+
+	now := time.Now()
+	code, err := totp.GenerateCode(opts, now)
+	if err != nil {
+		jsonResponse(w, http.StatusOK, map[string]any{"valid": false, "error": err.Error()})
+		return
+	}
+
+	formatted := code
+	if len(code) == 6 {
+		formatted = code[:3] + " " + code[3:]
+	} else if len(code) == 8 {
+		formatted = code[:4] + " " + code[4:]
+	}
+
+	rem := totp.RemainingSeconds(period, now)
+	prog := totp.Progress(period, now)
+	if otpType == totp.TypeHOTP {
+		rem = 0
+		prog = 0
+	}
+
+	jsonResponse(w, http.StatusOK, map[string]any{
+		"valid":          true,
+		"code":           code,
+		"formatted_code": formatted,
+		"remaining":      rem,
+		"progress":       prog,
+		"period":         period,
+	})
 }
 
 // decodeQRBytes parses and extracts QR matrix from image bytes

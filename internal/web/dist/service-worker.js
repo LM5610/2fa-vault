@@ -1,14 +1,14 @@
-const CACHE_NAME = '2fa-vault-v3';
+const CACHE_NAME = '2fa-vault-v4';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/manifest.json',
   '/icon.svg',
-  '/css/variables.css?v=3',
-  '/css/base.css?v=3',
-  '/css/cards.css?v=3',
-  '/css/modals.css?v=3',
-  '/js/app.js?v=3',
+  '/css/variables.css?v=4',
+  '/css/base.css?v=4',
+  '/css/cards.css?v=4',
+  '/css/modals.css?v=4',
+  '/js/app.js?v=4',
   '/js/api.js',
   '/js/state.js',
   '/js/ui.js',

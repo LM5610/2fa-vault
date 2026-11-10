@@ -14,10 +14,10 @@
   <link rel="manifest" href="/manifest.json">
 
   <!-- Modular CSS Sheets with cache-busting -->
-  <link rel="stylesheet" href="/css/variables.css?v=3">
-  <link rel="stylesheet" href="/css/base.css?v=3">
-  <link rel="stylesheet" href="/css/cards.css?v=3">
-  <link rel="stylesheet" href="/css/modals.css?v=3">
+  <link rel="stylesheet" href="/css/variables.css?v=4">
+  <link rel="stylesheet" href="/css/base.css?v=4">
+  <link rel="stylesheet" href="/css/cards.css?v=4">
+  <link rel="stylesheet" href="/css/modals.css?v=4">
 </head>
 <body>
 
@@ -100,6 +100,27 @@
         <div class="tab-btn" data-tab="tabURI">粘贴 URI</div>
       </div>
       <div class="modal-body">
+        <!-- Live OTP Preview Widget (Real-time live code & countdown) -->
+        <div id="modalLivePreview" class="live-preview-box" title="点击一键复制当前验证码">
+          <div class="live-preview-left">
+            <span class="live-preview-label">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+              实时动态验证码预览 (点击可直接复制)
+            </span>
+            <div class="live-preview-code" id="modalPreviewCode">------</div>
+            <span class="live-preview-hint" id="modalPreviewHint">输入或识别密钥后即时展示</span>
+          </div>
+          <div class="live-preview-right">
+            <div class="timer-container" id="modalPreviewTimer">
+              <svg class="timer-svg" viewBox="0 0 38 38">
+                <circle class="timer-bg" cx="19" cy="19" r="16"></circle>
+                <circle class="timer-circle" id="modalPreviewCircle" cx="19" cy="19" r="16" style="stroke-dashoffset: 0;"></circle>
+              </svg>
+              <span class="timer-text" id="modalPreviewSeconds">--s</span>
+            </div>
+          </div>
+        </div>
+
         <!-- Tab 1: Scanner & Local File -->
         <div id="tabScan" class="tab-content">
           <div class="scanner-viewport" id="scannerViewport">
@@ -220,6 +241,24 @@
             <img id="qrImage" src="" alt="2FA QR Code">
           </div>
         </div>
+
+        <!-- Live Code Box inside Show QR Modal -->
+        <div id="qrLivePreview" class="live-preview-box" style="width: 100%;" title="点击一键复制当前验证码">
+          <div class="live-preview-left">
+            <span class="live-preview-label">当前实时动态验证码 (点击复制)</span>
+            <div class="live-preview-code" id="qrPreviewCode">------</div>
+          </div>
+          <div class="live-preview-right">
+            <div class="timer-container">
+              <svg class="timer-svg" viewBox="0 0 38 38">
+                <circle class="timer-bg" cx="19" cy="19" r="16"></circle>
+                <circle class="timer-circle" id="qrPreviewCircle" cx="19" cy="19" r="16" style="stroke-dashoffset: 0;"></circle>
+              </svg>
+              <span class="timer-text" id="qrPreviewSeconds">--s</span>
+            </div>
+          </div>
+        </div>
+
         <div style="font-size: 0.75rem; color: var(--text-muted); word-break: break-all; background: var(--bg-input); padding: 8px 12px; border-radius: 8px; width: 100%; border: 1px solid var(--border-color);" id="qrURIText"></div>
       </div>
       <div class="modal-footer" style="justify-content: center;">
@@ -318,6 +357,6 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <!-- Main ES Module Application -->
-  <script type="module" src="/js/app.js?v=3"></script>
+  <script type="module" src="/js/app.js?v=4"></script>
 </body>
 </html>

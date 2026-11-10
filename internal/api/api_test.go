@@ -131,7 +131,26 @@ func TestAPI_Flow(t *testing.T) {
 		t.Fatalf("expected GitHub:testuser in decoded text, got %v", decodeResp["text"])
 	}
 
-	// 7. Lock vault
+	// 7. Test OTP Live Preview
+	req = httptest.NewRequest(http.MethodGet, "/api/otp/preview?secret=JBSWY3DPEHPK3PXP&digits=6&period=30", nil)
+	w = httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("otp preview expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	var previewResp map[string]any
+	if err := json.Unmarshal(w.Body.Bytes(), &previewResp); err != nil {
+		t.Fatalf("unmarshal preview failed: %v", err)
+	}
+	if previewResp["valid"] != true {
+		t.Fatalf("expected valid preview, got %v", previewResp)
+	}
+	if len(previewResp["code"].(string)) != 6 {
+		t.Fatalf("expected 6-digit code, got %v", previewResp["code"])
+	}
+
+	// 8. Lock vault
 	req = httptest.NewRequest(http.MethodPost, "/api/vault/lock", nil)
 	w = httptest.NewRecorder()
 	mux.ServeHTTP(w, req)

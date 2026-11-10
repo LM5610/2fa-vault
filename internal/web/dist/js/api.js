@@ -42,6 +42,10 @@ export const API = {
   getAccountURI: (id) => request(`/api/accounts/${id}/uri`),
   getTags: () => request('/api/tags'),
   decodeImageURL: (url) => request('/api/qr/decode-url', { method: 'POST', body: JSON.stringify({ url }) }),
+  previewOTP: (params) => {
+    const sp = new URLSearchParams(params);
+    return request(`/api/otp/preview?${sp.toString()}`);
+  },
   decodeImageFile: async (file) => {
     const formData = new FormData();
     formData.append('file', file);

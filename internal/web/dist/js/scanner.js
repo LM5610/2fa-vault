@@ -13,6 +13,8 @@ export function populateFormFromParsed(parsed) {
   if (parsed.digits) document.getElementById('accDigits').value = parsed.digits;
   if (parsed.period) document.getElementById('accPeriod').value = parsed.period;
   if (parsed.algorithm) document.getElementById('accAlgo').value = parsed.algorithm;
+
+  window.dispatchEvent(new CustomEvent('refreshModalPreview'));
 }
 
 export function populateFormFromURI(uriStr) {

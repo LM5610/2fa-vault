@@ -173,6 +173,7 @@ export function setupEventListeners() {
       document.getElementById('addModal').classList.add('active');
       switchAddTab('tabScan');
       startCamera();
+      updateModalLivePreview();
     });
   }
 
@@ -216,8 +217,48 @@ export function setupEventListeners() {
       }
       populateFormFromURI(uriStr);
       switchAddTab('tabManual');
+      updateModalLivePreview();
     });
   }
+
+  // Live OTP Code Preview listeners on form
+  const accSecret = document.getElementById('accSecret');
+  if (accSecret) {
+    accSecret.addEventListener('input', () => updateModalLivePreview());
+  }
+  ['accDigits', 'accPeriod', 'accAlgo', 'accType'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', () => updateModalLivePreview());
+  });
+
+  // Click live preview box to copy
+  const modalLivePreview = document.getElementById('modalLivePreview');
+  if (modalLivePreview) {
+    modalLivePreview.addEventListener('click', () => {
+      const code = document.getElementById('modalPreviewCode')?.textContent.replace(/\s+/g, '');
+      if (code && code !== '------') {
+        navigator.clipboard.writeText(code).then(() => {
+          showToast(`已复制预览验证码: ${code}`);
+        });
+      }
+    });
+  }
+
+  const qrLivePreview = document.getElementById('qrLivePreview');
+  if (qrLivePreview) {
+    qrLivePreview.addEventListener('click', () => {
+      const code = document.getElementById('qrPreviewCode')?.textContent.replace(/\s+/g, '');
+      if (code && code !== '------') {
+        navigator.clipboard.writeText(code).then(() => {
+          showToast(`已复制实时验证码: ${code}`);
+        });
+      }
+    });
+  }
+
+  window.addEventListener('refreshModalPreview', () => {
+    updateModalLivePreview();
+  });
 
   // Save Account Button
   const saveAccountBtn = document.getElementById('saveAccountBtn');
@@ -397,6 +438,18 @@ async function openQRModal(id) {
     qrImg.src = `/api/qr?size=300&data=${encodeURIComponent(uri)}`;
     document.getElementById('qrURIText').textContent = uri;
 
+    // Show live code in QR modal as well
+    const acc = state.accounts.find(a => a.id === id);
+    if (acc) {
+      const qrCodeEl = document.getElementById('qrPreviewCode');
+      if (qrCodeEl) {
+        let formatted = acc.code || '------';
+        if (formatted.length === 6) formatted = formatted.slice(0, 3) + ' ' + formatted.slice(3);
+        else if (formatted.length === 8) formatted = formatted.slice(0, 4) + ' ' + formatted.slice(4);
+        qrCodeEl.textContent = formatted;
+      }
+    }
+
     const copyBtn = document.getElementById('copyURIBtn');
     if (copyBtn) {
       copyBtn.onclick = () => {
@@ -409,6 +462,50 @@ async function openQRModal(id) {
     document.getElementById('qrModal').classList.add('active');
   } catch (err) {
     showToast(err.message, true);
+  }
+}
+
+export async function updateModalLivePreview() {
+  const secret = document.getElementById('accSecret')?.value.trim() || '';
+  const digits = document.getElementById('accDigits')?.value || 6;
+  const period = document.getElementById('accPeriod')?.value || 30;
+  const algo = document.getElementById('accAlgo')?.value || 'SHA1';
+  const type = document.getElementById('accType')?.value || 'totp';
+
+  const codeEl = document.getElementById('modalPreviewCode');
+  const hintEl = document.getElementById('modalPreviewHint');
+  const secEl = document.getElementById('modalPreviewSeconds');
+  const circleEl = document.getElementById('modalPreviewCircle');
+
+  if (!codeEl) return;
+
+  if (secret.length < 4) {
+    codeEl.textContent = '------';
+    if (hintEl) hintEl.textContent = '输入或识别密钥后即时展示';
+    if (secEl) secEl.textContent = '--s';
+    if (circleEl) circleEl.style.strokeDashoffset = '0';
+    return;
+  }
+
+  try {
+    const res = await API.previewOTP({ secret, digits, period, algorithm: algo, type });
+    if (res && res.valid) {
+      codeEl.textContent = res.formatted_code;
+      if (hintEl) hintEl.textContent = '已验证密钥有效 · 实时计算中 (点击可直接复制)';
+      if (secEl) secEl.textContent = `${res.remaining}s`;
+      if (circleEl) {
+        circleEl.style.strokeDashoffset = String(100.53 * res.progress);
+        if (res.remaining <= 5) circleEl.style.stroke = 'var(--danger)';
+        else if (res.remaining <= 10) circleEl.style.stroke = 'var(--warning)';
+        else circleEl.style.stroke = 'var(--success)';
+      }
+    } else {
+      codeEl.textContent = '------';
+      if (hintEl) hintEl.textContent = '密钥格式有误 (需为标准 Base32 编码)';
+    }
+  } catch (err) {
+    codeEl.textContent = '------';
+    if (hintEl) hintEl.textContent = '计算失败: ' + err.message;
   }
 }
 
@@ -430,6 +527,7 @@ function openEditModal(id) {
   document.getElementById('accNotes').value = acc.notes || '';
 
   switchAddTab('tabManual');
+  updateModalLivePreview();
   document.getElementById('addModal').classList.add('active');
 }
 
