@@ -29,7 +29,7 @@
         <div class="min-w-0">
           <div class="flex items-center gap-1.5">
             <h3 class="font-bold text-slate-900 dark:text-white truncate text-base leading-tight">
-              {{ account.issuer || account.account_name || '未命名服务' }}
+              {{ displayTitle }}
             </h3>
             <span v-if="account.pinned" class="text-brand-500" title="已置顶">
               <Pin :size="13" class="fill-brand-500" />
@@ -232,6 +232,16 @@ const showRecovery = ref(false);
 const imgFailed = ref(false);
 
 const brandInfo = computed(() => getBrandLogo(props.account.issuer, props.account.account_name));
+
+const displayTitle = computed(() => {
+  if (props.account.issuer && props.account.issuer.trim() && props.account.issuer !== props.account.account_name && !props.account.issuer.includes('@')) {
+    return props.account.issuer;
+  }
+  if (brandInfo.value.name) {
+    return brandInfo.value.name;
+  }
+  return props.account.issuer || props.account.account_name || '未命名服务';
+});
 
 const avatarChar = computed(() => {
   const name = props.account.issuer || props.account.account_name || '2';

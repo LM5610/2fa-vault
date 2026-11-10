@@ -1,4 +1,4 @@
-// High-Resolution Built-in Brand SVG Icons & Logo Resolver
+// High-Resolution Built-in Brand SVG Icons & Smart Logo Resolver
 
 export interface BrandInfo {
   svg?: string;
@@ -9,17 +9,23 @@ export interface BrandInfo {
 }
 
 const BRAND_SVGS: Record<string, { svg: string; bg: string; color: string; name: string }> = {
-  github: {
-    name: 'GitHub',
-    bg: '#24292e',
-    color: '#ffffff',
-    svg: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>`,
-  },
   google: {
     name: 'Google',
     bg: '#ffffff',
     color: '#4285F4',
     svg: `<svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>`,
+  },
+  gmail: {
+    name: 'Google (Gmail)',
+    bg: '#ffffff',
+    color: '#EA4335',
+    svg: `<svg viewBox="0 0 24 24"><path fill="#EA4335" d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.272H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L12 9.49l8.073-5.997c1.618-1.214 3.927-.059 3.927 1.964z"/></svg>`,
+  },
+  github: {
+    name: 'GitHub',
+    bg: '#24292e',
+    color: '#ffffff',
+    svg: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>`,
   },
   microsoft: {
     name: 'Microsoft',
@@ -33,6 +39,30 @@ const BRAND_SVGS: Record<string, { svg: string; bg: string; color: string; name:
     color: '#ffffff',
     svg: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.38c.62-.75 1.04-1.8 1.01-2.85-.9.04-1.98.6-2.61 1.34-.56.64-.99 1.72-.94 2.76 1 .08 1.92-.5 2.54-1.25z"/></svg>`,
   },
+  qq: {
+    name: 'QQ / 腾讯',
+    bg: '#12B7F5',
+    color: '#ffffff',
+    svg: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12c0 2.37.82 4.55 2.2 6.27-.14.7-.5 2.53-.57 2.91-.09.47.17.47.36.34.25-.17 2.56-1.74 3.05-2.07C8.42 19.78 10.15 20.2 12 20.2c5.52 0 10-4.48 10-10S17.52 2 12 2zm-3.5 11c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm7 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>`,
+  },
+  netease: {
+    name: '网易 163',
+    bg: '#D33A31',
+    color: '#ffffff',
+    svg: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm1.75 17.5h-3.5v-7h3.5v7zm-1.75-8.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>`,
+  },
+  wechat: {
+    name: '微信 (WeChat)',
+    bg: '#07C160',
+    color: '#ffffff',
+    svg: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.5 2C3.8 2 0 5.3 0 9.5c0 2.4 1.2 4.6 3.1 6-.2.8-.8 2.7-.9 3 0 .2.1.3.3.2.4-.2 2.8-1.7 3.3-2 .9.3 1.8.4 2.7.4.3 0 .6 0 .9-.1-.2-.5-.3-1.1-.3-1.7 0-4.1 3.8-7.3 8.5-7.3.3 0 .7 0 1 .1C17.5 4.6 13.4 2 8.5 2zm10 8c-3.9 0-7 2.7-7 6s3.1 6 7 6c.7 0 1.5-.1 2.2-.4.4.3 2.1 1.4 2.4 1.5.2.1.2 0 .2-.1-.1-.3-.5-1.6-.6-2.2 1.5-1.1 2.4-2.8 2.4-4.8 0-3.3-3.1-6-6.6-6z"/></svg>`,
+  },
+  bilibili: {
+    name: '哔哩哔哩 (Bilibili)',
+    bg: '#00A1D6',
+    color: '#ffffff',
+    svg: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.813 4.653h.854c1.51 0 2.769 1.233 2.769 2.75v10.524c0 1.517-1.259 2.793-2.769 2.793H5.333c-1.51 0-2.769-1.276-2.769-2.793V7.403c0-1.517 1.259-2.75 2.769-2.75h.854L4.394 2.86a.75.75 0 1 1 1.06-1.06l2.366 2.367c.725-.333 1.53-.514 2.38-.514h3.6c.85 0 1.655.181 2.38.514L18.546 1.8a.75.75 0 1 1 1.06 1.06l-1.793 1.793zM7.5 10a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm9 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/></svg>`,
+  },
   steam: {
     name: 'Steam',
     bg: '#171a21',
@@ -40,7 +70,7 @@ const BRAND_SVGS: Record<string, { svg: string; bg: string; color: string; name:
     svg: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.005.105.005.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 12-5.373 12-12S18.605 0 11.979 0z"/></svg>`,
   },
   binance: {
-    name: 'Binance',
+    name: 'Binance (币安)',
     bg: '#181a20',
     color: '#F3BA2F',
     svg: `<svg viewBox="0 0 24 24" fill="#F3BA2F"><path d="M16.624 13.92l2.715 2.715-7.34 7.343-7.339-7.343 2.714-2.714 4.625 4.628 4.626-4.629zm5.343-5.343l2.033 2.033-4.748 4.748-2.033-2.033 4.748-4.748zm-19.934 0l4.748 4.748-2.033 2.033-4.748-4.748 2.033-2.033zm9.967-8.577l7.34 7.34-2.715 2.714-4.625-4.628-4.625 4.628-2.715-2.714 7.34-7.34zm0 6.643l2.714 2.714-2.714 2.715-2.714-2.715 2.714-2.714z"/></svg>`,
@@ -101,12 +131,92 @@ const BRAND_SVGS: Record<string, { svg: string; bg: string; color: string; name:
   },
 };
 
+/**
+ * Intelligent Brand and Logo Resolver
+ * Analyzes issuer, account name, and email domains to match official logos or avatars.
+ */
 export function getBrandLogo(issuer: string, accountName?: string): BrandInfo {
-  const norm = (issuer || '').toLowerCase().trim();
+  const normIssuer = (issuer || '').toLowerCase().trim();
+  const normAccount = (accountName || '').toLowerCase().trim();
+  const combined = `${normIssuer} ${normAccount}`;
 
-  // 1. Direct built-in match
+  // 1. Check for QQ Email (Direct QQ User Avatar sniffing: q1.qlogo.cn)
+  if (combined.includes('@qq.com') || normIssuer === 'qq') {
+    const qqMatch = normAccount.match(/(\d{5,11})@qq\.com/) || normIssuer.match(/(\d{5,11})/);
+    if (qqMatch && qqMatch[1]) {
+      return {
+        name: 'QQ',
+        apiLogoUrl: `https://q1.qlogo.cn/g?b=qq&nk=${qqMatch[1]}&s=100`,
+        bg: '#12B7F5',
+        color: '#ffffff',
+      };
+    }
+    return BRAND_SVGS.qq;
+  }
+
+  // 2. Check for Google / Gmail (email address like *@gmail.com, google, gmail)
+  if (
+    combined.includes('gmail') ||
+    combined.includes('@gmail.com') ||
+    combined.includes('google')
+  ) {
+    if (combined.includes('gmail')) {
+      return BRAND_SVGS.gmail;
+    }
+    return BRAND_SVGS.google;
+  }
+
+  // 3. Check for Microsoft / Outlook / Hotmail / Azure / Office365
+  if (
+    combined.includes('microsoft') ||
+    combined.includes('outlook') ||
+    combined.includes('hotmail') ||
+    combined.includes('live.com') ||
+    combined.includes('live.cn') ||
+    combined.includes('azure') ||
+    combined.includes('office365')
+  ) {
+    return BRAND_SVGS.microsoft;
+  }
+
+  // 4. Check for NetEase 163 / 126
+  if (
+    combined.includes('@163.com') ||
+    combined.includes('@126.com') ||
+    combined.includes('netease') ||
+    combined.includes('163.com')
+  ) {
+    return BRAND_SVGS.netease;
+  }
+
+  // 5. Check for WeChat / Weixin
+  if (combined.includes('wechat') || combined.includes('weixin') || combined.includes('微信')) {
+    return BRAND_SVGS.wechat;
+  }
+
+  // 6. Check for Apple / iCloud
+  if (combined.includes('apple') || combined.includes('icloud') || combined.includes('@icloud.com')) {
+    return BRAND_SVGS.apple;
+  }
+
+  // 7. Check for GitHub
+  if (combined.includes('github')) {
+    // If account name is a valid GitHub username (not email), sniff avatar directly
+    if (normAccount && !normAccount.includes('@') && !normAccount.includes(' ')) {
+      return {
+        name: 'GitHub',
+        apiLogoUrl: `/api/logo?issuer=github&account=${encodeURIComponent(normAccount)}`,
+        svg: BRAND_SVGS.github.svg,
+        bg: BRAND_SVGS.github.bg,
+        color: BRAND_SVGS.github.color,
+      };
+    }
+    return BRAND_SVGS.github;
+  }
+
+  // 8. Match other built-in brand SVGs
   for (const [key, info] of Object.entries(BRAND_SVGS)) {
-    if (norm.includes(key)) {
+    if (combined.includes(key)) {
       return {
         svg: info.svg,
         bg: info.bg,
@@ -116,8 +226,17 @@ export function getBrandLogo(issuer: string, accountName?: string): BrandInfo {
     }
   }
 
-  // 2. Dynamic logo fetch URL via Go backend proxy
-  const apiLogoUrl = `/api/logo?issuer=${encodeURIComponent(issuer)}&account=${encodeURIComponent(accountName || '')}`;
+  // 9. Dynamic logo fetch URL via Go backend proxy (cleaning domain from email if present)
+  let domain = '';
+  if (normAccount.includes('@')) {
+    domain = normAccount.split('@')[1];
+  } else if (normIssuer.includes('@')) {
+    domain = normIssuer.split('@')[1];
+  } else if (normIssuer.includes('.')) {
+    domain = normIssuer;
+  }
+
+  const apiLogoUrl = `/api/logo?issuer=${encodeURIComponent(issuer)}&domain=${encodeURIComponent(domain)}&account=${encodeURIComponent(accountName || '')}`;
   return {
     apiLogoUrl,
   };

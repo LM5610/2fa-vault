@@ -83,7 +83,7 @@
           <div class="min-w-0">
             <div class="flex items-center gap-1">
               <span class="font-bold text-xs text-slate-900 dark:text-white truncate leading-tight">
-                {{ acc.issuer || acc.account_name || '未命名' }}
+                {{ getDisplayTitle(acc) }}
               </span>
               <Pin v-if="acc.pinned" :size="10" class="text-brand-500 fill-brand-500 flex-shrink-0" />
             </div>
@@ -168,6 +168,17 @@ const copiedId = ref<string | null>(null);
 
 function getBrand(acc: Account) {
   return getBrandLogo(acc.issuer || '', acc.account_name || '');
+}
+
+function getDisplayTitle(acc: Account): string {
+  if (acc.issuer && acc.issuer.trim() && acc.issuer !== acc.account_name && !acc.issuer.includes('@')) {
+    return acc.issuer;
+  }
+  const brand = getBrand(acc);
+  if (brand.name) {
+    return brand.name;
+  }
+  return acc.issuer || acc.account_name || '未命名';
 }
 
 function formatCode(code?: string): string {
