@@ -64,15 +64,16 @@
         <div class="flex items-center gap-2.5 min-w-0 pr-2">
           <!-- Logo -->
           <div
-            class="w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs flex-shrink-0 shadow-xs overflow-hidden p-1.5 border border-slate-200/60 dark:border-slate-800/80"
-            :style="{ backgroundColor: getBrand(acc).bg || 'rgba(99, 102, 241, 0.1)', color: getBrand(acc).color || '#6366f1' }"
+            class="w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs flex-shrink-0 shadow-xs overflow-hidden border border-slate-200/60 dark:border-slate-800/80"
+            :class="getBrand(acc).apiLogoUrl ? 'p-0 bg-slate-100 dark:bg-slate-800' : 'p-1.5'"
+            :style="getBrand(acc).apiLogoUrl ? {} : { backgroundColor: getBrand(acc).bg || 'rgba(99, 102, 241, 0.1)', color: getBrand(acc).color || '#6366f1' }"
           >
             <div v-if="getBrand(acc).svg" v-html="getBrand(acc).svg" class="w-full h-full flex items-center justify-center"></div>
             <img
               v-else-if="getBrand(acc).apiLogoUrl"
               :src="getBrand(acc).apiLogoUrl"
               :alt="acc.issuer"
-              class="w-full h-full object-contain"
+              class="w-full h-full object-cover"
             />
             <span v-else class="text-brand-600 dark:text-brand-400 font-bold">
               {{ (acc.issuer || acc.account_name || '?').charAt(0).toUpperCase() }}

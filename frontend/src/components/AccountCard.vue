@@ -10,15 +10,16 @@
       <div class="flex items-center gap-3 min-w-0">
         <!-- Brand Logo / Avatar -->
         <div
-          class="w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-base flex-shrink-0 shadow-sm overflow-hidden p-2 border border-slate-200/60 dark:border-slate-800/80"
-          :style="{ backgroundColor: brandInfo.bg || 'rgba(99, 102, 241, 0.1)', color: brandInfo.color || '#6366f1' }"
+          class="w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-base flex-shrink-0 shadow-sm overflow-hidden border border-slate-200/60 dark:border-slate-800/80"
+          :class="brandInfo.apiLogoUrl ? 'p-0 bg-slate-100 dark:bg-slate-800' : 'p-2'"
+          :style="brandInfo.apiLogoUrl ? {} : { backgroundColor: brandInfo.bg || 'rgba(99, 102, 241, 0.1)', color: brandInfo.color || '#6366f1' }"
         >
           <div v-if="brandInfo.svg" v-html="brandInfo.svg" class="w-full h-full flex items-center justify-center"></div>
           <img
             v-else-if="brandInfo.apiLogoUrl && !imgFailed"
             :src="brandInfo.apiLogoUrl"
             :alt="account.issuer"
-            class="w-full h-full object-contain"
+            class="w-full h-full object-cover"
             @error="imgFailed = true"
           />
           <span v-else class="text-brand-600 dark:text-brand-400 font-extrabold text-lg">
