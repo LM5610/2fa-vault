@@ -64,7 +64,13 @@
 │   ├── migration/              # 导入导出引擎：Aegis JSON 格式适配、标准 otpauth 批量转换
 │   └── mobile/                 # GoMobile 原生桥接层：提供 iOS/Android gomobile bind 导出接口
 ├── internal/
-│   ├── api/                    # RESTful API 服务路由、二维码 URL/文件服务端解码与实时计算
+│   ├── api/                    # 彻底模块化的 RESTful API 控制器
+│   │   ├── server.go           # 服务初始化、统一路由注册与 JSON 响应封装
+│   │   ├── vault_handlers.go   # 保险库生命周期：状态探测、初始化、解锁、锁定、改密、自动锁定
+│   │   ├── account_handlers.go # 2FA 令牌核心业务：CRUD、标签检索、HOTP 递增、置顶、导出二维码
+│   │   ├── qr_handlers.go      # 二维码与图像处理：服务端解码、跨域图片代理、PNG 二维码生成
+│   │   ├── otp_handlers.go     # 实时 OTP 运算：动态验证码计算预览、SSE 实时时间刻推送
+│   │   └── migration_handlers.go # 迁移数据管道：Aegis JSON 与批量 URI 导入导出
 │   └── web/                    # 编译产物托管层 (go:embed all:dist 内置入单一可执行程序)
 │       ├── embed.go
 │       └── dist/               # Vite 编译生成的超轻量生产级 SPA 资源包
