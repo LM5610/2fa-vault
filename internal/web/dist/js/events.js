@@ -6,6 +6,8 @@ import { showToast, renderAccounts, renderTagPills } from './ui.js';
 import { startCamera, stopCamera, switchAddTab, parseFromImageURL, parseFromFile, populateFormFromURI } from './scanner.js';
 import { backupVault } from './icloud.js';
 
+let activeQRModalId = null;
+
 export function setupEventListeners() {
   // Lock / Unlock / Init Form
   const lockForm = document.getElementById('lockForm');
@@ -260,6 +262,26 @@ export function setupEventListeners() {
     updateModalLivePreview();
   });
 
+  window.addEventListener('refreshQRModalCode', async () => {
+    if (!activeQRModalId) return;
+    const acc = state.accounts.find(a => a.id === activeQRModalId);
+    if (!acc) return;
+    try {
+      const res = await API.previewOTP({
+        secret: acc.secret,
+        digits: acc.digits,
+        period: acc.period,
+        algorithm: acc.algorithm,
+        type: acc.type,
+        counter: acc.counter
+      });
+      if (res && res.valid) {
+        const qrCodeEl = document.getElementById('qrPreviewCode');
+        if (qrCodeEl) qrCodeEl.textContent = res.formatted_code;
+      }
+    } catch (e) {}
+  });
+
   // Save Account Button
   const saveAccountBtn = document.getElementById('saveAccountBtn');
   if (saveAccountBtn) {
@@ -432,6 +454,7 @@ export function setupEventListeners() {
 
 async function openQRModal(id) {
   try {
+    activeQRModalId = id;
     const res = await API.getAccountURI(id);
     const uri = res.uri;
     const qrImg = document.getElementById('qrImage');
