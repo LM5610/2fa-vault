@@ -1,28 +1,16 @@
-const CACHE_NAME = '2fa-vault-v6';
-const ASSETS_TO_CACHE = [
+const CACHE_NAME = '2fa-vault-v7-vue';
+const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/icon.svg',
-  '/css/variables.css?v=6',
-  '/css/base.css?v=6',
-  '/css/cards.css?v=6',
-  '/css/modals.css?v=6',
-  '/js/app.js?v=6',
-  '/js/api.js',
-  '/js/state.js',
-  '/js/ui.js',
-  '/js/countdown.js',
-  '/js/scanner.js',
-  '/js/icloud.js',
-  '/js/events.js'
+  '/icon.svg'
 ];
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
+      return cache.addAll(STATIC_ASSETS);
     })
   );
 });
@@ -42,21 +30,24 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Always fetch API fresh
+  // Always fetch API dynamically
   if (event.request.url.includes('/api/')) {
     event.respondWith(fetch(event.request));
     return;
   }
 
-  // Network first for HTML/CSS/JS, fallback to cache
+  // Network first, fallback to cache for HTML and assets
   event.respondWith(
     fetch(event.request)
-      .then((networkResponse) => {
-        if (networkResponse && networkResponse.status === 200) {
-          const clone = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+      .then((response) => {
+        if (!response || response.status !== 200 || response.type !== 'basic') {
+          return response;
         }
-        return networkResponse;
+        const responseToCache = response.clone();
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, responseToCache);
+        });
+        return response;
       })
       .catch(() => caches.match(event.request))
   );

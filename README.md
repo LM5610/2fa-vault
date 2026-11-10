@@ -14,7 +14,8 @@
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20iOS%20%7C%20macOS%20%7C%20Linux-brightgreen?style=flat-square" alt="Platform" />
   <img src="https://img.shields.io/badge/Encryption-Argon2id%20%2B%20AES--256--GCM-blueviolet?style=flat-square" alt="Security" />
   <img src="https://img.shields.io/badge/Sync-iCloud%20Drive%20Ready-blue?style=flat-square" alt="iCloud" />
-  <img src="https://img.shields.io/badge/Frontend-ES%20Modules%20%2B%20CSS%20Modular-orange?style=flat-square" alt="Modular Frontend" />
+  <img src="https://img.shields.io/badge/Frontend-Vue%203%20%2B%20TypeScript%20%2B%20Tailwind-42b883?style=flat-square&logo=vuedotjs" alt="Vue 3 Frontend" />
+  <img src="https://img.shields.io/badge/Build-Vite%20%2B%20Zero%20CGo-646CFF?style=flat-square&logo=vite" alt="Vite Build" />
   <img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="License" />
 </p>
 
@@ -55,33 +56,38 @@
 ```text
 2FA/
 ├── cmd/
-│   └── server/main.go      # 主程序入口：CLI 参数解析、LAN 局域网 IP 自动嗅探、自动打开浏览器、优雅停机
+│   └── server/main.go          # 主程序入口：CLI 参数解析、LAN 局域网 IP 自动嗅探、自动打开浏览器
 ├── pkg/
-│   ├── totp/               # OTP 核心计算：RFC 6238 TOTP、RFC 4226 HOTP、Steam Guard、URI 编解码
-│   ├── crypto/             # 安全加密模块：Argon2id 密钥派生、AES-256-GCM 封套加解密
-│   ├── vault/              # 保险库状态机：CRUD、置顶、标签检索、自动锁定时钟、原子安全落盘
-│   ├── migration/          # 导入导出引擎：Aegis JSON 格式适配、标准 otpauth 批量转换
-│   └── mobile/             # GoMobile 原生桥接层：提供 iOS/Android gomobile bind 导出接口
+│   ├── totp/                   # OTP 核心计算：RFC 6238 TOTP、RFC 4226 HOTP、Steam Guard、URI 编解码
+│   ├── crypto/                 # 安全加密模块：Argon2id 密钥派生、AES-256-GCM 封套加解密
+│   ├── vault/                  # 保险库状态机：CRUD、置顶、标签检索、自动锁定时钟、原子安全落盘
+│   ├── migration/              # 导入导出引擎：Aegis JSON 格式适配、标准 otpauth 批量转换
+│   └── mobile/                 # GoMobile 原生桥接层：提供 iOS/Android gomobile bind 导出接口
 ├── internal/
-│   ├── api/                # RESTful API 服务路由、二维码 URL/文件服务端解码与 SSE 实时推送
-│   └── web/                # 现代化 Web 前端 (go:embed 打包内置，单二进制零外部资源依赖)
+│   ├── api/                    # RESTful API 服务路由、二维码 URL/文件服务端解码与实时计算
+│   └── web/                    # 编译产物托管层 (go:embed all:dist 内置入单一可执行程序)
 │       ├── embed.go
-│       └── dist/
-│           ├── index.html  # 响应式结构骨架
-│           ├── css/        # 模块化样式表
-│           │   ├── variables.css   # 主题色板、暗黑/明亮模式变量、滚动条、选区
-│           │   ├── base.css        # 全局排版、网格布局、搜索栏、标签栏、通用按钮
-│           │   ├── cards.css       # 2FA 账户卡片、渐变头像、动态环形倒计时 SVG
-│           │   └── modals.css      # 弹窗模态框、Tabs 导航、防白边表单控件、二维码暗黑容器
-│           └── js/         # 模块化 ES 脚本
-│               ├── api.js          # RESTful 与解码请求接口封装
-│               ├── state.js        # 应用响应式状态仓库
-│               ├── ui.js           # DOM 渲染、主题管理、Toast 气泡通知
-│               ├── countdown.js    # 环形倒计时刻度动画与周期边界刷新
-│               ├── scanner.js      # 摄像头扫描、图片链接解码、本地相册解析
-│               ├── icloud.js       # iOS Web Share 唤起 iCloud Drive 备份适配
-│               ├── events.js       # 交互事件分发与全局快捷键调度 (Ctrl+F, Ctrl+L, Esc)
-│               └── app.js          # 主启动编排入口
+│       └── dist/               # Vite 编译生成的超轻量生产级 SPA 资源包
+├── frontend/                   # 现代化 Vue 3 + TypeScript 前端工程 (Vite + Tailwind CSS)
+│   ├── src/
+│   │   ├── api/client.ts       # 强类型 RESTful 客户端封装
+│   │   ├── types/vault.ts      # 2FA 令牌、算法、加密与状态 TypeScript 类型定义
+│   │   ├── composables/        # 响应式逻辑组合函数 (useVault, useTheme, useToast)
+│   │   ├── components/         # 组件化 UI 视图
+│   │   │   ├── Navbar.vue      # 导航栏、实时搜索 (Ctrl+F)、标签分类筛选条、快速操作
+│   │   │   ├── AccountCard.vue # 2FA 令牌卡片、平滑 SVG 环形倒计时、点击一键复制
+│   │   │   ├── LivePreview.vue # 实时动态验证码预览组件 (密钥有效性校验、秒级倒数)
+│   │   │   ├── AddModal.vue    # 添加/编辑弹窗 (截屏粘贴 Ctrl+V、网页图片拖拽、URL 解析、相册选择)
+│   │   │   ├── QRModal.vue     # 令牌二维码展示弹窗 (含实时动态码与 URI 复制)
+│   │   │   ├── SettingsModal.vue # 自动锁定时间、暗色/亮色模式分段切换、主密码修改
+│   │   │   ├── ImportExportModal.vue # Aegis JSON 导出、iCloud 原生分享、批量导入
+│   │   │   ├── DragOverlay.vue # 全局拖拽悬停视觉指示层
+│   │   │   └── ToastContainer.vue # 悬浮气泡通知
+│   │   ├── App.vue             # 根布局与全局拖拽/截屏粘贴/键盘快捷键监听
+│   │   └── main.ts             # 应用装配与 Service Worker (PWA 离线支持) 注册
+│   ├── public/                 # PWA 图标、Web Manifest 与 Service Worker
+│   ├── vite.config.ts          # Vite 构建配置 (自动构建输出至 ../internal/web/dist)
+│   └── tailwind.config.js      # 高对比度暗色/亮色主题与现代化调色板配置
 ├── go.mod / go.sum
 └── README.md
 ```
@@ -122,9 +128,26 @@
 ## 🚀 启动与使用指南
 
 ### 1. 编译构建
-```bash
-# 编译生成 Windows 独立可执行程序
+
+项目支持一键编译前端与打包单文件二进制：
+```powershell
+# 步骤 1：编译 Vue 3 前端工程 (产物自动同步至 internal/web/dist)
+cd frontend
+pnpm build     # 或 npm run build
+cd ..
+
+# 步骤 2：编译生成 Windows 独立单文件可执行程序 (无外部依赖，仅单个 .exe)
 go build -ldflags="-s -w" -o 2fa-vault.exe ./cmd/server
+```
+
+前端开发模式 (支持热重载 HMR)：
+```powershell
+# 终端 1 启动后端服务
+go run ./cmd/server
+
+# 终端 2 启动前端热重载开发服务器
+cd frontend
+pnpm dev       # 访问 http://localhost:5173，自动代理 /api 请求
 ```
 
 ### 2. 运行
