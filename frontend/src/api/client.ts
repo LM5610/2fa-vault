@@ -1,7 +1,20 @@
 import type { Account, VaultStatus, OTPPreviewRequest, OTPPreviewResponse, QRDecodeResponse, SyncInfoResponse, SyncPairInitResponse, SnapshotInfo } from '../types/vault';
 
+export const getApiBaseUrl = (): string => {
+  return localStorage.getItem('vault_api_server') || '';
+};
+
+export const setApiBaseUrl = (url: string) => {
+  if (url) {
+    localStorage.setItem('vault_api_server', url.replace(/\/+$/, ''));
+  } else {
+    localStorage.removeItem('vault_api_server');
+  }
+};
+
 async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(endpoint, {
+  const fullUrl = endpoint.startsWith('http') ? endpoint : `${getApiBaseUrl()}${endpoint}`;
+  const res = await fetch(fullUrl, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -60,12 +73,12 @@ export const API = {
   getSyncInfo: () => request<SyncInfoResponse>('/api/sync/info'),
   initSyncPair: () => request<SyncPairInitResponse>('/api/sync/pair/init', { method: 'POST' }),
   downloadPairedVault: async (token: string): Promise<Blob> => {
-    const res = await fetch(`/api/sync/pair/vault?token=${encodeURIComponent(token)}`);
+    const res = await fetch(`${getApiBaseUrl()}/api/sync/pair/vault?token=${encodeURIComponent(token)}`);
     if (!res.ok) throw new Error('下载同步加密数据失败或配对码已失效');
     return res.blob();
   },
   uploadPairedVault: async (token: string, data: Blob): Promise<{ success: boolean }> => {
-    const res = await fetch(`/api/sync/pair/vault?token=${encodeURIComponent(token)}`, {
+    const res = await fetch(`${getApiBaseUrl()}/api/sync/pair/vault?token=${encodeURIComponent(token)}`, {
       method: 'POST',
       body: data,
     });
@@ -78,7 +91,7 @@ export const API = {
   decodeImageFile: async (file: File): Promise<QRDecodeResponse> => {
     const formData = new FormData();
     formData.append('file', file);
-    const res = await fetch('/api/qr/decode-file', {
+    const res = await fetch(`${getApiBaseUrl()}/api/qr/decode-file`, {
       method: 'POST',
       body: formData,
     });
