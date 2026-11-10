@@ -3,7 +3,7 @@
 import { state } from './state.js';
 import { API } from './api.js';
 import { showToast, renderAccounts, renderTagPills } from './ui.js';
-import { startCamera, stopCamera, switchAddTab, parseFromImageURL, parseFromFile, populateFormFromURI } from './scanner.js';
+import { startCamera, stopCamera, switchAddTab, toggleCamera, parseFromImageURL, parseFromFile, populateFormFromURI, setupDragDropAndPaste } from './scanner.js';
 import { backupVault } from './icloud.js';
 
 let activeQRModalId = null;
@@ -174,10 +174,21 @@ export function setupEventListeners() {
       document.getElementById('editAccountId').value = '';
       document.getElementById('addModal').classList.add('active');
       switchAddTab('tabScan');
-      startCamera();
       updateModalLivePreview();
     });
   }
+
+  // Toggle Camera Button
+  const toggleCameraBtn = document.getElementById('toggleCameraBtn');
+  if (toggleCameraBtn) {
+    toggleCameraBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleCamera();
+    });
+  }
+
+  // Setup global drag-and-drop & clipboard paste
+  setupDragDropAndPaste();
 
   // Add Modal Tabs
   const addTabs = document.getElementById('addTabs');

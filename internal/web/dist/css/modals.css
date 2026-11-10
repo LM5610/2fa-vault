@@ -222,6 +222,108 @@ html.light textarea:-webkit-autofill {
   box-shadow: 0 2px 8px var(--accent-glow);
 }
 
+/* QR Dropzone & Screenshot Paste Area */
+.qr-dropzone {
+  border: 2px dashed var(--border-color);
+  border-radius: 16px;
+  padding: 24px 16px;
+  text-align: center;
+  background: rgba(99, 102, 241, 0.03);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.qr-dropzone:hover, .qr-dropzone.dragover {
+  border-color: var(--accent);
+  background: rgba(99, 102, 241, 0.08);
+  transform: translateY(-1px);
+}
+
+.dropzone-icon {
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.dropzone-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-heading) !important;
+  margin-bottom: 4px;
+}
+
+.dropzone-desc {
+  font-size: 0.82rem;
+  color: var(--text-muted) !important;
+  margin-bottom: 14px;
+  line-height: 1.5;
+}
+
+.dropzone-desc kbd {
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  padding: 2px 6px;
+  font-size: 0.78rem;
+  font-family: inherit;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.dropzone-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Global Fullscreen Drag & Drop Overlay */
+.global-drag-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(10px);
+  z-index: 9999;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: #ffffff;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+body.is-dragging .global-drag-overlay {
+  display: flex;
+}
+
+.drag-overlay-box {
+  border: 3px dashed var(--accent);
+  border-radius: 24px;
+  padding: 48px;
+  background: rgba(99, 102, 241, 0.15);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+  box-shadow: 0 0 50px rgba(99, 102, 241, 0.4);
+}
+
+.drag-overlay-box h2 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.drag-overlay-box p {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
 /* Scanner Viewport */
 .scanner-viewport {
   position: relative;
