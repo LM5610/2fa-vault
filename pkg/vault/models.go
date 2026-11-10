@@ -8,22 +8,30 @@ import (
 	"twofa-vault/pkg/totp"
 )
 
+// RecoveryCode represents a single emergency backup code
+type RecoveryCode struct {
+	Code string `json:"code"`
+	Used bool   `json:"used"`
+}
+
 // Account represents a single 2FA entry
 type Account struct {
-	ID          string         `json:"id"`
-	Issuer      string         `json:"issuer"`
-	AccountName string         `json:"account_name"`
-	Secret      string         `json:"secret"`
-	Algorithm   totp.Algorithm `json:"algorithm"`
-	Digits      int            `json:"digits"`
-	Period      int            `json:"period"`
-	Type        totp.OTPType   `json:"type"`
-	Counter     uint64         `json:"counter"`
-	Tags        []string       `json:"tags,omitempty"`
-	Notes       string         `json:"notes,omitempty"`
-	Pinned      bool           `json:"pinned,omitempty"`
-	CreatedAt   time.Time      `json:"created_at"`
-	UpdatedAt   time.Time      `json:"updated_at"`
+	ID            string         `json:"id"`
+	Issuer        string         `json:"issuer"`
+	AccountName   string         `json:"account_name"`
+	Secret        string         `json:"secret"`
+	Algorithm     totp.Algorithm `json:"algorithm"`
+	Digits        int            `json:"digits"`
+	Period        int            `json:"period"`
+	Type          totp.OTPType   `json:"type"`
+	Counter       uint64         `json:"counter"`
+	Tags          []string       `json:"tags,omitempty"`
+	Notes         string         `json:"notes,omitempty"`
+	Pinned        bool           `json:"pinned,omitempty"`
+	Order         int            `json:"order,omitempty"`
+	RecoveryCodes []RecoveryCode `json:"recovery_codes,omitempty"`
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
 }
 
 // AccountDTO is the view returned to UI/clients with live OTP code

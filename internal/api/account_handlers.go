@@ -36,18 +36,20 @@ func (s *Server) handleAccounts(w http.ResponseWriter, r *http.Request) {
 
 	case http.MethodPost:
 		var req struct {
-			URI         string         `json:"uri,omitempty"`
-			Issuer      string         `json:"issuer"`
-			AccountName string         `json:"account_name"`
-			Secret      string         `json:"secret"`
-			Algorithm   totp.Algorithm `json:"algorithm"`
-			Digits      int            `json:"digits"`
-			Period      int            `json:"period"`
-			Type        totp.OTPType   `json:"type"`
-			Counter     uint64         `json:"counter"`
-			Tags        []string       `json:"tags"`
-			Notes       string         `json:"notes"`
-			Pinned      bool           `json:"pinned"`
+			URI           string               `json:"uri,omitempty"`
+			Issuer        string               `json:"issuer"`
+			AccountName   string               `json:"account_name"`
+			Secret        string               `json:"secret"`
+			Algorithm     totp.Algorithm       `json:"algorithm"`
+			Digits        int                  `json:"digits"`
+			Period        int                  `json:"period"`
+			Type          totp.OTPType         `json:"type"`
+			Counter       uint64               `json:"counter"`
+			Tags          []string             `json:"tags"`
+			Notes         string               `json:"notes"`
+			Pinned        bool                 `json:"pinned"`
+			Order         int                  `json:"order"`
+			RecoveryCodes []vault.RecoveryCode `json:"recovery_codes"`
 		}
 
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -73,17 +75,19 @@ func (s *Server) handleAccounts(w http.ResponseWriter, r *http.Request) {
 		}
 
 		newAcc, err := s.vault.AddAccount(vault.Account{
-			Issuer:      req.Issuer,
-			AccountName: req.AccountName,
-			Secret:      req.Secret,
-			Algorithm:   req.Algorithm,
-			Digits:      req.Digits,
-			Period:      req.Period,
-			Type:        req.Type,
-			Counter:     req.Counter,
-			Tags:        req.Tags,
-			Notes:       req.Notes,
-			Pinned:      req.Pinned,
+			Issuer:        req.Issuer,
+			AccountName:   req.AccountName,
+			Secret:        req.Secret,
+			Algorithm:     req.Algorithm,
+			Digits:        req.Digits,
+			Period:        req.Period,
+			Type:          req.Type,
+			Counter:       req.Counter,
+			Tags:          req.Tags,
+			Notes:         req.Notes,
+			Pinned:        req.Pinned,
+			Order:         req.Order,
+			RecoveryCodes: req.RecoveryCodes,
 		})
 		if err != nil {
 			errorResponse(w, http.StatusBadRequest, err.Error())
@@ -137,15 +141,29 @@ func (s *Server) handleAccountItem(w http.ResponseWriter, r *http.Request) {
 				errorResponse(w, http.StatusMethodNotAllowed, "method not allowed")
 				return
 			}
-			acc, err := s.vault.GetAccount(id)
+			updated, err := s.vault.TogglePin(id)
 			if err != nil {
 				errorResponse(w, http.StatusNotFound, err.Error())
 				return
 			}
-			acc.Pinned = !acc.Pinned
-			updated, err := s.vault.UpdateAccount(*acc)
+			jsonResponse(w, http.StatusOK, updated)
+			return
+
+		case "recovery":
+			if r.Method != http.MethodPost {
+				errorResponse(w, http.StatusMethodNotAllowed, "method not allowed")
+				return
+			}
+			var req struct {
+				Index int `json:"index"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+				errorResponse(w, http.StatusBadRequest, "invalid json body")
+				return
+			}
+			updated, err := s.vault.ToggleRecoveryCode(id, req.Index)
 			if err != nil {
-				errorResponse(w, http.StatusInternalServerError, err.Error())
+				errorResponse(w, http.StatusBadRequest, err.Error())
 				return
 			}
 			jsonResponse(w, http.StatusOK, updated)
@@ -251,4 +269,31 @@ func (s *Server) handleTags(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	jsonResponse(w, http.StatusOK, tags)
+}
+
+// Reorder accounts: POST /api/accounts/reorder
+func (s *Server) handleReorderAccounts(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		errorResponse(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	if s.vault.IsLocked() {
+		errorResponse(w, http.StatusUnauthorized, "vault is locked")
+		return
+	}
+
+	var req struct {
+		IDs []string `json:"ids"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		errorResponse(w, http.StatusBadRequest, "invalid json body")
+		return
+	}
+
+	if err := s.vault.ReorderAccounts(req.IDs); err != nil {
+		errorResponse(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	jsonResponse(w, http.StatusOK, map[string]any{"success": true})
 }

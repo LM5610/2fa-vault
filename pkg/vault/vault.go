@@ -270,10 +270,13 @@ func (v *Vault) ListAccounts(query, tag string) ([]AccountDTO, error) {
 		})
 	}
 
-	// Sort pinned first, then alphabetical by Issuer / Account
+	// Sort pinned first, then by Order, then alphabetical by Issuer / Account
 	sort.Slice(results, func(i, j int) bool {
 		if results[i].Pinned != results[j].Pinned {
 			return results[i].Pinned
+		}
+		if results[i].Order != results[j].Order {
+			return results[i].Order < results[j].Order
 		}
 		if results[i].Issuer != results[j].Issuer {
 			return strings.ToLower(results[i].Issuer) < strings.ToLower(results[j].Issuer)
@@ -457,6 +460,115 @@ func (v *Vault) IncrementHOTP(id string) (string, uint64, error) {
 	}
 
 	return "", 0, ErrAccountNotFound
+}
+
+// TogglePin toggles the pinned status of an account
+func (v *Vault) TogglePin(id string) (*Account, error) {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
+	if v.locked || v.data == nil {
+		return nil, ErrVaultLocked
+	}
+
+	for i := range v.data.Accounts {
+		if v.data.Accounts[i].ID == id {
+			v.data.Accounts[i].Pinned = !v.data.Accounts[i].Pinned
+			v.data.Accounts[i].UpdatedAt = time.Now()
+			if err := v.saveUnlocked(); err != nil {
+				return nil, err
+			}
+			v.resetAutoLockTimer()
+			cp := v.data.Accounts[i]
+			return &cp, nil
+		}
+	}
+
+	return nil, ErrAccountNotFound
+}
+
+// ReorderAccounts updates the ordering of accounts given an array of account IDs
+func (v *Vault) ReorderAccounts(ids []string) error {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
+	if v.locked || v.data == nil {
+		return ErrVaultLocked
+	}
+
+	idMap := make(map[string]int)
+	for i, id := range ids {
+		idMap[id] = i
+	}
+
+	for i := range v.data.Accounts {
+		if pos, ok := idMap[v.data.Accounts[i].ID]; ok {
+			v.data.Accounts[i].Order = pos
+		}
+	}
+
+	v.data.UpdatedAt = time.Now()
+	if err := v.saveUnlocked(); err != nil {
+		return err
+	}
+	v.resetAutoLockTimer()
+	return nil
+}
+
+// ToggleRecoveryCode toggles the used status of a specific recovery code
+func (v *Vault) ToggleRecoveryCode(accountID string, codeIndex int) (*Account, error) {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
+	if v.locked || v.data == nil {
+		return nil, ErrVaultLocked
+	}
+
+	for i := range v.data.Accounts {
+		if v.data.Accounts[i].ID == accountID {
+			if codeIndex < 0 || codeIndex >= len(v.data.Accounts[i].RecoveryCodes) {
+				return nil, errors.New("invalid recovery code index")
+			}
+			v.data.Accounts[i].RecoveryCodes[codeIndex].Used = !v.data.Accounts[i].RecoveryCodes[codeIndex].Used
+			v.data.Accounts[i].UpdatedAt = time.Now()
+			if err := v.saveUnlocked(); err != nil {
+				return nil, err
+			}
+			v.resetAutoLockTimer()
+			cp := v.data.Accounts[i]
+			return &cp, nil
+		}
+	}
+
+	return nil, ErrAccountNotFound
+}
+
+// GetRawEncryptedData reads the raw encrypted vault file from disk (for P2P LAN sync)
+func (v *Vault) GetRawEncryptedData() ([]byte, error) {
+	v.mu.RLock()
+	defer v.mu.RUnlock()
+	return os.ReadFile(v.storagePath)
+}
+
+// ImportRawEncryptedData overwrites the encrypted vault file on disk (for P2P LAN sync)
+func (v *Vault) ImportRawEncryptedData(data []byte) error {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
+	tmp := v.storagePath + ".tmp"
+	if err := os.WriteFile(tmp, data, 0600); err != nil {
+		return err
+	}
+	if err := os.Rename(tmp, v.storagePath); err != nil {
+		_ = os.Remove(tmp)
+		return err
+	}
+
+	// Re-lock vault so master password must be entered
+	v.locked = true
+	v.data = nil
+	v.passphrase = ""
+	return nil
 }
 
 // Tags returns all unique tags currently in use across accounts

@@ -246,6 +246,19 @@
               class="w-full px-3.5 py-2 rounded-xl text-sm bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 focus:border-brand-500 text-slate-900 dark:text-white outline-none"
             />
           </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center justify-between">
+              <span>备用应急恢复码 (Recovery Codes，可选)</span>
+              <span class="text-[11px] text-slate-400">支持批量粘贴多行</span>
+            </label>
+            <textarea
+              v-model="recoveryCodesInput"
+              rows="3"
+              placeholder="从服务商安全设置中复制的备用恢复码 (每行一个，例如 a1b2-c3d4)"
+              class="w-full px-3.5 py-2 rounded-xl text-xs font-mono bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 focus:border-brand-500 text-slate-900 dark:text-white outline-none"
+            ></textarea>
+          </div>
         </div>
 
         <!-- Tab 4: Paste URI -->
@@ -331,6 +344,7 @@ const imageUrlInput = ref('');
 const imageUrlPreview = ref('');
 const uriInput = ref('');
 const tagsInput = ref('');
+const recoveryCodesInput = ref('');
 const fileInputRef = ref<HTMLInputElement | null>(null);
 const videoRef = ref<HTMLVideoElement | null>(null);
 
@@ -362,6 +376,7 @@ watch(
       form.algorithm = acc.algorithm || 'SHA1';
       form.notes = acc.notes || '';
       tagsInput.value = (acc.tags || []).join(', ');
+      recoveryCodesInput.value = (acc.recovery_codes || []).map((r) => r.code).join('\n');
       activeTab.value = 'tabManual';
     } else {
       resetForm();
@@ -380,6 +395,7 @@ function resetForm() {
   form.algorithm = 'SHA1';
   form.notes = '';
   tagsInput.value = '';
+  recoveryCodesInput.value = '';
   imageUrlInput.value = '';
   imageUrlPreview.value = '';
   uriInput.value = '';
@@ -595,6 +611,15 @@ async function handleSave() {
     .map((t) => t.trim())
     .filter(Boolean);
 
+  const recoveryCodes = recoveryCodesInput.value
+    .split('\n')
+    .map((c) => c.trim())
+    .filter(Boolean)
+    .map((code) => {
+      const existing = props.accountToEdit?.recovery_codes?.find((r) => r.code === code);
+      return { code, used: existing ? existing.used : false };
+    });
+
   const payload: Partial<Account> = {
     issuer: form.issuer.trim(),
     account_name: form.account_name.trim(),
@@ -605,6 +630,7 @@ async function handleSave() {
     algorithm: form.algorithm,
     tags,
     notes: form.notes.trim(),
+    recovery_codes: recoveryCodes,
   };
 
   isSaving.value = true;

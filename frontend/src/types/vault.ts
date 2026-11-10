@@ -1,6 +1,11 @@
 export type OTPType = 'totp' | 'hotp' | 'steam';
 export type OTPAlgorithm = 'SHA1' | 'SHA256' | 'SHA512';
 
+export interface RecoveryCode {
+  code: string;
+  used: boolean;
+}
+
 export interface Account {
   id: string;
   issuer: string;
@@ -13,11 +18,25 @@ export interface Account {
   counter?: number;
   tags?: string[];
   notes?: string;
+  pinned?: boolean;
+  order?: number;
+  recovery_codes?: RecoveryCode[];
   code?: string;
   remaining?: number;
   progress?: number;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface SyncInfoResponse {
+  lan_ips: string[];
+}
+
+export interface SyncPairInitResponse {
+  token: string;
+  expires_in: number;
+  pairing_url: string;
+  lan_ips: string[];
 }
 
 export interface VaultStatus {

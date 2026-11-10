@@ -89,9 +89,44 @@ func TestVault_Lifecycle(t *testing.T) {
 		t.Fatal("vault should be unlocked")
 	}
 
-	// 5. Delete Account
+	// 5. Test RecoveryCodes & Pinning & Reorder
+	acc2, err := v.AddAccount(Account{
+		Issuer:      "Google",
+		AccountName: "user@gmail.com",
+		Secret:      "JBSWY3DPEHPK3PXP",
+		RecoveryCodes: []RecoveryCode{
+			{Code: "1111-2222", Used: false},
+			{Code: "3333-4444", Used: false},
+		},
+	})
+	if err != nil {
+		t.Fatalf("AddAccount 2 failed: %v", err)
+	}
+
+	// Toggle recovery code
+	toggled, err := v.ToggleRecoveryCode(acc2.ID, 0)
+	if err != nil {
+		t.Fatalf("ToggleRecoveryCode failed: %v", err)
+	}
+	if !toggled.RecoveryCodes[0].Used {
+		t.Fatal("expected recovery code 0 to be used")
+	}
+
+	// Toggle pin
+	pinnedAcc, err := v.TogglePin(acc2.ID)
+	if err != nil {
+		t.Fatalf("TogglePin failed: %v", err)
+	}
+	if !pinnedAcc.Pinned {
+		t.Fatal("expected account to be pinned")
+	}
+
+	// 6. Delete Accounts
 	if err := v.DeleteAccount(acc.ID); err != nil {
 		t.Fatalf("DeleteAccount failed: %v", err)
+	}
+	if err := v.DeleteAccount(acc2.ID); err != nil {
+		t.Fatalf("DeleteAccount 2 failed: %v", err)
 	}
 
 	listAfterDel, err := v.ListAccounts("", "")

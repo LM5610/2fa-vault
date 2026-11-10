@@ -1,4 +1,4 @@
-import type { Account, VaultStatus, OTPPreviewRequest, OTPPreviewResponse, QRDecodeResponse } from '../types/vault';
+import type { Account, VaultStatus, OTPPreviewRequest, OTPPreviewResponse, QRDecodeResponse, SyncInfoResponse, SyncPairInitResponse } from '../types/vault';
 
 async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const res = await fetch(endpoint, {
@@ -40,11 +40,31 @@ export const API = {
   updateAccount: (id: string, data: Partial<Account>) => request<Account>(`/api/accounts/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteAccount: (id: string) => request<{ status: string }>(`/api/accounts/${id}`, { method: 'DELETE' }),
   incrementHOTP: (id: string) => request<{ code: string; counter: number }>(`/api/accounts/${id}/increment`, { method: 'POST' }),
+  togglePin: (id: string) => request<Account>(`/api/accounts/${id}/pin`, { method: 'POST' }),
+  toggleRecoveryCode: (id: string, index: number) => request<Account>(`/api/accounts/${id}/recovery`, { method: 'POST', body: JSON.stringify({ index }) }),
+  reorderAccounts: (ids: string[]) => request<{ success: boolean }>('/api/accounts/reorder', { method: 'POST', body: JSON.stringify({ ids }) }),
   getAccountQR: (id: string) => request<{ qr_data: string; otpauth_uri: string }>(`/api/accounts/${id}/qr`),
 
   getTags: () => request<string[]>('/api/tags'),
   getExportData: (format: 'json' | 'uri' = 'json') => request<{ data: string; format: string }>(`/api/export?format=${format}`),
   importData: (data: string) => request<{ imported: number }>('/api/import', { method: 'POST', body: JSON.stringify({ data }) }),
+
+  // LAN Direct Sync
+  getSyncInfo: () => request<SyncInfoResponse>('/api/sync/info'),
+  initSyncPair: () => request<SyncPairInitResponse>('/api/sync/pair/init', { method: 'POST' }),
+  downloadPairedVault: async (token: string): Promise<Blob> => {
+    const res = await fetch(`/api/sync/pair/vault?token=${encodeURIComponent(token)}`);
+    if (!res.ok) throw new Error('下载同步加密数据失败或配对码已失效');
+    return res.blob();
+  },
+  uploadPairedVault: async (token: string, data: Blob): Promise<{ success: boolean }> => {
+    const res = await fetch(`/api/sync/pair/vault?token=${encodeURIComponent(token)}`, {
+      method: 'POST',
+      body: data,
+    });
+    if (!res.ok) throw new Error('上传同步加密数据失败');
+    return res.json();
+  },
 
   previewOTP: (req: OTPPreviewRequest) => request<OTPPreviewResponse>('/api/otp/preview', { method: 'POST', body: JSON.stringify(req) }),
   decodeImageURL: (url: string) => request<QRDecodeResponse>('/api/qr/decode-url', { method: 'POST', body: JSON.stringify({ url }) }),
