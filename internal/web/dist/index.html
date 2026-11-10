@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>2FA Vault - 安全双因素认证管理器</title>
+  <meta name="description" content="适用于 Windows 与 iOS 的跨平台现代化 2FA 认证管理器">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="2FA Vault">
+  <meta name="theme-color" content="#0f172a">
+  <link rel="icon" type="image/svg+xml" href="/icon.svg">
+  <link rel="apple-touch-icon" href="/icon.svg">
+  <link rel="manifest" href="/manifest.json">
+  <style>
+    :root {
+      --bg-primary: #090d16;
+      --bg-card: rgba(22, 30, 46, 0.75);
+      --bg-card-hover: rgba(30, 41, 59, 0.85);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-sub: #64748b;
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --accent-glow: rgba(99, 102, 241, 0.25);
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --glass-blur: blur(16px);
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    html.light {
+      --bg-primary: #f8fafc;
+      --bg-card: rgba(255, 255, 255, 0.85);
+      --bg-card-hover: rgba(241, 245, 249, 0.95);
+      --border-color: rgba(0, 0, 0, 0.08);
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --text-sub: #94a3b8;
+      --accent: #4f46e5;
+      --accent-hover: #4338ca;
+      --accent-glow: rgba(79, 70, 229, 0.15);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding-top: max(12px, env(safe-area-inset-top));
+      padding-bottom: max(20px, env(safe-area-inset-bottom));
+      padding-left: max(16px, env(safe-area-inset-left));
+      padding-right: max(16px, env(safe-area-inset-right));
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.12) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 40%);
+      background-attachment: fixed;
+    }
+
+    /* Layout Container */
+    .app-container {
+      max-width: 1080px;
+      margin: 0 auto;
+      width: 100%;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0 20px 0;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px var(--accent-glow);
+    }
+
+    .brand-icon svg {
+      width: 22px;
+      height: 22px;
+      fill: #ffffff;
+    }
+
+    .brand-text h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-text span {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      display: block;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #ffffff;
+      box-shadow: 0 4px 14px var(--accent-glow);
+    }
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn-ghost {
+      background: var(--bg-card);
+      color: var(--text-main);
+      border-color: var(--border-color);
+      backdrop-filter: var(--glass-blur);
+    }
+    .btn-ghost:hover {
+      background: var(--bg-card-hover);
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .btn-icon {
+      padding: 8px;
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+    }
+
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--danger);
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+    .btn-danger:hover {
+      background: var(--danger);
+      color: #ffffff;
+    }
+
+    /* Search & Filter Bar */
+    .filter-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .search-box {
+      position: relative;
+      width: 100%;
+    }
+
+    .search-box svg {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 18px;
+      height: 18px;
+      fill: var(--text-sub);
+      pointer-events: none;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 12px 16px 12px 42px;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-card);
+      color: var(--text-main);
+      font-size: 0.95rem;
+      backdrop-filter: var(--glass-blur);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .tag-pills {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scrollbar-width: none;
+    }
+    .tag-pills::-webkit-scrollbar {
+      display: none;
+    }
+
+    .tag-pill {
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      background: var(--bg-card);
+      color: var(--text-muted);
+      border: 1px solid var(--border-color);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+
+    .tag-pill.active {
+      background: var(--accent);
+      color: #ffffff;
+      border-color: var(--accent);
+      box-shadow: 0 2px 8px var(--accent-glow);
+    }
+
+    /* Accounts Grid */
+    .accounts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 16px;
+      flex: 1;
+      align-content: start;
+    }
+
+    /* Account Card */
+    .account-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      backdrop-filter: var(--glass-blur);
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: relative;
+      transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .account-card:hover {
+      border-color: rgba(255, 255, 255, 0.18);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .card-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .issuer-avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #ffffff;
+      flex-shrink: 0;
+      text-transform: uppercase;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
+
+    .issuer-info {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .issuer-title {
+      font-size: 1rem;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .account-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .card-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .btn-icon-sm {
+      width: 30px;
+      height: 30px;
+      padding: 6px;
+      border-radius: 8px;
+      background: transparent;
+      border: none;
+      color: var(--text-sub);
+      cursor: pointer;
+      transition: color 0.15s, background-color 0.15s;
+    }
+    .btn-icon-sm:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .btn-icon-sm.pinned {
+      color: #fbbf24;
+    }
+
+    /* OTP Code Section */
+    .code-box {
+      background: rgba(0, 0, 0, 0.25);
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .code-box:hover {
+      background: rgba(0, 0, 0, 0.35);
+      border-color: var(--accent);
+    }
+    .code-box:active {
+      transform: scale(0.99);
+    }
+
+    .otp-code {
+      font-family: var(--font-mono);
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--text-main);
+      user-select: all;
+    }
+
+    /* Circular Countdown Meter */
+    .timer-container {
+      position: relative;
+      width: 38px;
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .timer-svg {
+      transform: rotate(-90deg);
+      width: 38px;
+      height: 38px;
+    }
+
+    .timer-bg {
+      fill: none;
+      stroke: rgba(255, 255, 255, 0.1);
+      stroke-width: 3.5;
+    }
+
+    .timer-circle {
+      fill: none;
+      stroke: var(--success);
+      stroke-width: 3.5;
+      stroke-linecap: round;
+      stroke-dasharray: 100;
+      stroke-dashoffset: 0;
+      transition: stroke-dashoffset 0.8s linear, stroke 0.3s;
+    }
+
+    .timer-text {
+      position: absolute;
+      font-size: 0.75rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+    }
+
+    /* Card Footer / Badges */
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: var(--text-sub);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-muted);
+    }
+
+    .badge-steam {
+      background: rgba(56, 189, 248, 0.15);
+      color: #38bdf8;
+    }
+
+    /* Empty State */
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+
+    .empty-icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 16px;
+      fill: var(--text-sub);
+      opacity: 0.5;
+    }
+
+    /* Modal Backdrop & Dialog */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 16px;
+    }
+
+    .modal-backdrop.active {
+      display: flex;
+    }
+
+    .modal-dialog {
+      background: #111827;
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      width: 100%;
+      max-width: 480px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+      overflow: hidden;
+      animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes modalPop {
+      0% { opacity: 0; transform: scale(0.95); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    .modal-header {
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-header h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .modal-body {
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .modal-footer {
+      padding: 16px 20px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    /* Forms inside Modals */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .form-input, .form-select, .form-textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-main);
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    /* Tabs */
+    .tabs-nav {
+      display: flex;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 4px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 10px;
+      text-align: center;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s ease;
+    }
+
+    .tab-btn.active {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    /* Scanner Viewport */
+    .scanner-viewport {
+      position: relative;
+      width: 100%;
+      height: 240px;
+      border-radius: 14px;
+      overflow: hidden;
+      background: #000000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .scanner-viewport video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .scanner-reticle {
+      position: absolute;
+      width: 180px;
+      height: 180px;
+      border: 2px dashed rgba(99, 102, 241, 0.8);
+      border-radius: 12px;
+      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+      pointer-events: none;
+    }
+
+    /* Toast Notification */
+    .toast-container {
+      position: fixed;
+      bottom: max(24px, env(safe-area-inset-bottom));
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 2000;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: rgba(16, 185, 129, 0.95);
+      color: #ffffff;
+      padding: 10px 18px;
+      border-radius: 30px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      animation: toastIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .toast.error {
+      background: rgba(239, 68, 68, 0.95);
+    }
+
+    @keyframes toastIn {
+      0% { opacity: 0; transform: translateY(12px) scale(0.95); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* Lock Screen Overlay */
+    .lock-screen {
+      position: fixed;
+      inset: 0;
+      background: var(--bg-primary);
+      z-index: 900;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .lock-card {
+      width: 100%;
+      max-width: 380px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .lock-avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 24px var(--accent-glow);
+    }
+
+    .lock-avatar svg {
+      width: 36px;
+      height: 36px;
+      fill: #ffffff;
+    }
+
+    /* Mobile bottom navigation bar for iOS */
+    @media (max-width: 640px) {
+      .accounts-grid {
+        grid-template-columns: 1fr;
+      }
+      .header-actions .btn-text {
+        display: none;
+      }
+      .brand-text h1 {
+        font-size: 1.1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Full Lock Screen -->
+  <div id="lockScreen" class="lock-screen" style="display: none;">
+    <div class="lock-card">
+      <div class="lock-avatar">
+        <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+      </div>
+      <div>
+        <h2 id="lockTitle" style="font-size: 1.4rem; font-weight: 700; margin-bottom: 6px;">保险库已锁定</h2>
+        <p id="lockSubtitle" style="color: var(--text-muted); font-size: 0.85rem;">请输入主密码以解密 2FA 令牌</p>
+      </div>
+      <form id="lockForm" style="display: flex; flex-direction: column; gap: 12px;">
+        <input type="password" id="masterPasswordInput" class="form-input" placeholder="输入主密码" autocomplete="current-password" autofocus required style="padding: 14px; font-size: 1rem; text-align: center;">
+        <button type="submit" id="unlockBtn" class="btn btn-primary" style="padding: 14px; font-size: 1rem;">解锁保险库</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Main App View -->
+  <div class="app-container" id="appView">
+    <header>
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+        </div>
+        <div class="brand-text">
+          <h1>2FA Vault</h1>
+          <span>安全双因素认证管理器</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button id="addBtn" class="btn btn-primary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          <span class="btn-text">添加令牌</span>
+        </button>
+        <button id="importExportBtn" class="btn btn-ghost">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+          <span class="btn-text">导入/备份</span>
+        </button>
+        <button id="settingsBtn" class="btn btn-ghost btn-icon" title="设置">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+        </button>
+        <button id="lockBtn" class="btn btn-ghost btn-icon" title="锁定保险库">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Search & Filter -->
+    <div class="filter-bar">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+        <input type="text" id="searchInput" class="search-input" placeholder="搜索服务名称、账户、标签或备注... (Ctrl+F)">
+      </div>
+      <div class="tag-pills" id="tagPills">
+        <span class="tag-pill active" data-tag="">全部</span>
+      </div>
+    </div>
+
+    <!-- Accounts Grid -->
+    <main class="accounts-grid" id="accountsGrid">
+      <!-- Cards rendered dynamically via JavaScript -->
+    </main>
+  </div>
+
+  <!-- Modal: Add / Edit Account -->
+  <div id="addModal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="modalTitle">添加 2FA 令牌</h3>
+        <button type="button" class="btn-icon-sm close-modal">&times;</button>
+      </div>
+      <div class="tabs-nav" id="addTabs">
+        <div class="tab-btn active" data-tab="tabScan">扫描二维码</div>
+        <div class="tab-btn" data-tab="tabManual">手动输入</div>
+        <div class="tab-btn" data-tab="tabURI">粘贴 URI</div>
+      </div>
+      <div class="modal-body">
+        <!-- Tab 1: Scanner -->
+        <div id="tabScan" class="tab-content">
+          <div class="scanner-viewport" id="scannerViewport">
+            <video id="scannerVideo" playsinline></video>
+            <div class="scanner-reticle"></div>
+          </div>
+          <div style="margin-top: 12px; text-align: center;">
+            <label class="btn btn-ghost" style="cursor: pointer; display: inline-flex;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+              <span>从相册选择二维码图片</span>
+              <input type="file" id="qrFileInput" accept="image/*" style="display: none;">
+            </label>
+          </div>
+        </div>
+
+        <!-- Tab 2: Manual Form -->
+        <div id="tabManual" class="tab-content" style="display: none;">
+          <form id="accountForm" style="display: flex; flex-direction: column; gap: 12px;">
+            <input type="hidden" id="editAccountId">
+            <div class="form-group">
+              <label for="accIssuer">服务提供商 (Issuer)</label>
+              <input type="text" id="accIssuer" class="form-input" placeholder="例如: GitHub, Google, Steam" required>
+            </div>
+            <div class="form-group">
+              <label for="accAccount">账号 / 邮箱 (Account)</label>
+              <input type="text" id="accAccount" class="form-input" placeholder="例如: user@example.com" required>
+            </div>
+            <div class="form-group">
+              <label for="accSecret">密钥 (Secret Key / Base32)</label>
+              <input type="text" id="accSecret" class="form-input" placeholder="例如: JBSWY3DPEHPK3PXP" required style="font-family: var(--font-mono);">
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="accType">类型</label>
+                <select id="accType" class="form-select">
+                  <option value="totp">基于时间 (TOTP)</option>
+                  <option value="hotp">基于计数 (HOTP)</option>
+                  <option value="steam">Steam 令牌</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="accDigits">验证码位数</label>
+                <select id="accDigits" class="form-select">
+                  <option value="6">6 位数</option>
+                  <option value="8">8 位数</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="accPeriod">周期 (秒)</label>
+                <input type="number" id="accPeriod" class="form-input" value="30">
+              </div>
+              <div class="form-group">
+                <label for="accAlgo">加密算法</label>
+                <select id="accAlgo" class="form-select">
+                  <option value="SHA1">SHA1 (标准)</option>
+                  <option value="SHA256">SHA256</option>
+                  <option value="SHA512">SHA512</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="accTags">分类标签 (逗号分隔)</label>
+              <input type="text" id="accTags" class="form-input" placeholder="例如: 个人, 工作, 游戏">
+            </div>
+            <div class="form-group">
+              <label for="accNotes">备注</label>
+              <textarea id="accNotes" class="form-textarea" rows="2" placeholder="可选备注信息"></textarea>
+            </div>
+          </form>
+        </div>
+
+        <!-- Tab 3: URI Paste -->
+        <div id="tabURI" class="tab-content" style="display: none;">
+          <div class="form-group">
+            <label for="otpURIInput">otpauth:// 链接</label>
+            <textarea id="otpURIInput" class="form-textarea" rows="4" placeholder="粘贴类似 otpauth://totp/GitHub:user?secret=... 的完整链接"></textarea>
+          </div>
+          <button type="button" id="parseURIBtn" class="btn btn-primary" style="margin-top: 10px;">解析并填充</button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost close-modal">取消</button>
+        <button type="button" id="saveAccountBtn" class="btn btn-primary">保存令牌</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Show QR Code -->
+  <div id="qrModal" class="modal-backdrop">
+    <div class="modal-dialog" style="max-width: 360px; text-align: center;">
+      <div class="modal-header">
+        <h3 id="qrModalTitle">导出二维码</h3>
+        <button type="button" class="btn-icon-sm close-modal">&times;</button>
+      </div>
+      <div class="modal-body" style="align-items: center; gap: 16px;">
+        <p style="font-size: 0.85rem; color: var(--text-muted);">使用 iPhone、iPad 或另一台设备扫描此二维码即可同步</p>
+        <div id="qrImageContainer" style="padding: 12px; background: #ffffff; border-radius: 16px; display: inline-block;">
+          <img id="qrImage" src="" alt="2FA QR Code" style="width: 200px; height: 200px; display: block;">
+        </div>
+        <div style="font-size: 0.75rem; color: var(--text-sub); word-break: break-all;" id="qrURIText"></div>
+      </div>
+      <div class="modal-footer" style="justify-content: center;">
+        <button type="button" id="copyURIBtn" class="btn btn-ghost">复制 URI 链接</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Import / Export -->
+  <div id="importExportModal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>导入与备份数据</h3>
+        <button type="button" class="btn-icon-sm close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <h4 style="font-size: 0.95rem; font-weight: 600;">备份导出</h4>
+        <p style="font-size: 0.8rem; color: var(--text-muted);">将所有 2FA 令牌安全保存到本地文件</p>
+        <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+          <button id="exportJSONBtn" class="btn btn-ghost" style="flex: 1;">导出为 JSON 文件</button>
+          <button id="exportURIsBtn" class="btn btn-ghost" style="flex: 1;">导出为 URI 列表</button>
+        </div>
+
+        <hr style="border: none; border-top: 1px solid var(--border-color); margin: 8px 0;">
+
+        <h4 style="font-size: 0.95rem; font-weight: 600;">数据导入</h4>
+        <p style="font-size: 0.8rem; color: var(--text-muted);">支持 Aegis Authenticator JSON 备份或 otpauth:// 文本列表</p>
+        <textarea id="importTextInput" class="form-textarea" rows="4" placeholder="将备份文本直接粘贴到此处..."></textarea>
+        <div style="display: flex; gap: 10px;">
+          <label class="btn btn-ghost" style="cursor: pointer; flex: 1; text-align: center;">
+            <span>选择文件导入</span>
+            <input type="file" id="importFileInput" accept=".json,.txt" style="display: none;">
+          </label>
+          <button id="doImportBtn" class="btn btn-primary" style="flex: 1;">确认导入</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Settings -->
+  <div id="settingsModal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>安全与全局设置</h3>
+        <button type="button" class="btn-icon-sm close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="autoLockSelect">自动锁定时间</label>
+          <select id="autoLockSelect" class="form-select">
+            <option value="1">1 分钟无操作</option>
+            <option value="5">5 分钟无操作</option>
+            <option value="15">15 分钟无操作 (推荐)</option>
+            <option value="30">30 分钟无操作</option>
+            <option value="0">从不自动锁定</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="themeToggle">界面主题</label>
+          <button type="button" id="themeToggleBtn" class="btn btn-ghost" style="justify-content: flex-start;">
+            <span id="themeToggleText">🌙 切换为亮色模式</span>
+          </button>
+        </div>
+
+        <hr style="border: none; border-top: 1px solid var(--border-color); margin: 8px 0;">
+
+        <h4 style="font-size: 0.95rem; font-weight: 600;">修改主密码</h4>
+        <form id="changePasswordForm" style="display: flex; flex-direction: column; gap: 10px;">
+          <input type="password" id="oldMasterPassword" class="form-input" placeholder="当前主密码" required autocomplete="current-password">
+          <input type="password" id="newMasterPassword" class="form-input" placeholder="新主密码 (至少 6 位)" required autocomplete="new-password">
+          <button type="submit" class="btn btn-primary">更新主密码</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
