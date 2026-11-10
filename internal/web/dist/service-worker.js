@@ -1,10 +1,21 @@
-const CACHE_NAME = '2fa-vault-v1';
+const CACHE_NAME = '2fa-vault-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
-  '/app.js',
   '/manifest.json',
-  '/icon.svg'
+  '/icon.svg',
+  '/css/variables.css',
+  '/css/base.css',
+  '/css/cards.css',
+  '/css/modals.css',
+  '/js/app.js',
+  '/js/api.js',
+  '/js/state.js',
+  '/js/ui.js',
+  '/js/countdown.js',
+  '/js/scanner.js',
+  '/js/icloud.js',
+  '/js/events.js'
 ];
 
 self.addEventListener('install', (event) => {

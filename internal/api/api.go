@@ -1,15 +1,24 @@
 package api
 
 import (
+	"bytes"
+	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
+	_ "image"
+	_ "image/gif"
+	_ "image/jpeg"
+	_ "image/png"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
 
 	qrcode "github.com/skip2/go-qrcode"
+	tuotoo "github.com/tuotoo/qrcode"
 
 	"twofa-vault/pkg/migration"
 	"twofa-vault/pkg/totp"
@@ -18,12 +27,18 @@ import (
 
 // Server handles all REST API requests
 type Server struct {
-	vault *vault.Vault
+	vault      *vault.Vault
+	httpClient *http.Client
 }
 
 // NewServer creates a new API Server instance
 func NewServer(v *vault.Vault) *Server {
-	return &Server{vault: v}
+	return &Server{
+		vault: v,
+		httpClient: &http.Client{
+			Timeout: 10 * time.Second,
+		},
+	}
 }
 
 // RegisterRoutes registers all REST and SSE endpoints on mux
@@ -40,6 +55,10 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/tags", s.handleTags)
 
 	mux.HandleFunc("/api/qr", s.handleQRCode)
+	mux.HandleFunc("/api/qr/decode-url", s.handleQRDecodeURL)
+	mux.HandleFunc("/api/qr/decode-file", s.handleQRDecodeFile)
+	mux.HandleFunc("/api/proxy-image", s.handleProxyImage)
+
 	mux.HandleFunc("/api/import", s.handleImport)
 	mux.HandleFunc("/api/export", s.handleExport)
 	mux.HandleFunc("/api/events", s.handleSSE)
@@ -417,6 +436,186 @@ func (s *Server) handleQRCode(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(png)
+}
+
+// Decode QR from Image URL endpoint: POST /api/qr/decode-url
+func (s *Server) handleQRDecodeURL(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		errorResponse(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	var req struct {
+		URL string `json:"url"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		errorResponse(w, http.StatusBadRequest, "invalid json body")
+		return
+	}
+
+	rawURL := strings.TrimSpace(req.URL)
+	if rawURL == "" {
+		errorResponse(w, http.StatusBadRequest, "url cannot be empty")
+		return
+	}
+
+	var imgBytes []byte
+	var err error
+
+	// Handle Data URI (data:image/...;base64,...)
+	if strings.HasPrefix(rawURL, "data:image/") {
+		commaIdx := strings.Index(rawURL, ",")
+		if commaIdx == -1 {
+			errorResponse(w, http.StatusBadRequest, "invalid data uri format")
+			return
+		}
+		imgBytes, err = base64.StdEncoding.DecodeString(rawURL[commaIdx+1:])
+		if err != nil {
+			errorResponse(w, http.StatusBadRequest, "invalid base64 in data uri")
+			return
+		}
+	} else {
+		// HTTP/HTTPS URL
+		u, err := url.Parse(rawURL)
+		if err != nil || (u.Scheme != "http" && u.Scheme != "https") {
+			errorResponse(w, http.StatusBadRequest, "url must be http or https")
+			return
+		}
+
+		httpReq, err := http.NewRequestWithContext(r.Context(), http.MethodGet, rawURL, nil)
+		if err != nil {
+			errorResponse(w, http.StatusBadRequest, "invalid request")
+			return
+		}
+		httpReq.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) 2FA-Vault/1.0")
+
+		resp, err := s.httpClient.Do(httpReq)
+		if err != nil {
+			errorResponse(w, http.StatusBadRequest, fmt.Sprintf("fetch image failed: %v", err))
+			return
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			errorResponse(w, http.StatusBadRequest, fmt.Sprintf("image server returned http %d", resp.StatusCode))
+			return
+		}
+
+		// Limit max image size to 10MB
+		imgBytes, err = io.ReadAll(io.LimitReader(resp.Body, 10*1024*1024))
+		if err != nil {
+			errorResponse(w, http.StatusBadRequest, "read image failed")
+			return
+		}
+	}
+
+	result, err := decodeQRBytes(imgBytes)
+	if err != nil {
+		errorResponse(w, http.StatusBadRequest, fmt.Sprintf("qr decode failed: %v", err))
+		return
+	}
+
+	jsonResponse(w, http.StatusOK, result)
+}
+
+// Decode QR from File upload: POST /api/qr/decode-file
+func (s *Server) handleQRDecodeFile(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		errorResponse(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	file, _, err := r.FormFile("file")
+	if err != nil {
+		errorResponse(w, http.StatusBadRequest, "missing 'file' form field")
+		return
+	}
+	defer file.Close()
+
+	imgBytes, err := io.ReadAll(io.LimitReader(file, 10*1024*1024))
+	if err != nil {
+		errorResponse(w, http.StatusBadRequest, "read file failed")
+		return
+	}
+
+	result, err := decodeQRBytes(imgBytes)
+	if err != nil {
+		errorResponse(w, http.StatusBadRequest, fmt.Sprintf("qr decode failed: %v", err))
+		return
+	}
+
+	jsonResponse(w, http.StatusOK, result)
+}
+
+// Proxy image to bypass browser CORS: GET /api/proxy-image?url=...
+func (s *Server) handleProxyImage(w http.ResponseWriter, r *http.Request) {
+	targetURL := r.URL.Query().Get("url")
+	if targetURL == "" {
+		errorResponse(w, http.StatusBadRequest, "missing url")
+		return
+	}
+
+	u, err := url.Parse(targetURL)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") {
+		errorResponse(w, http.StatusBadRequest, "invalid url scheme")
+		return
+	}
+
+	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, targetURL, nil)
+	if err != nil {
+		errorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	req.Header.Set("User-Agent", "Mozilla/5.0 2FA-Vault/1.0")
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		errorResponse(w, http.StatusBadGateway, err.Error())
+		return
+	}
+	defer resp.Body.Close()
+
+	contentType := resp.Header.Get("Content-Type")
+	if contentType == "" {
+		contentType = "image/png"
+	}
+
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Cache-Control", "public, max-age=3600")
+	w.WriteHeader(resp.StatusCode)
+	_, _ = io.Copy(w, resp.Body)
+}
+
+// decodeQRBytes parses and extracts QR matrix from image bytes
+func decodeQRBytes(data []byte) (map[string]any, error) {
+	matrix, err := tuotoo.Decode(bytes.NewReader(data))
+	if err != nil {
+		return nil, errors.New("no QR code found or image is too blurry")
+	}
+
+	content := strings.TrimSpace(matrix.Content)
+	res := map[string]any{
+		"text": content,
+	}
+
+	// If content is an otpauth URI, parse details
+	if strings.HasPrefix(content, "otpauth://") {
+		parsed, err := totp.ParseURI(content)
+		if err == nil {
+			res["parsed"] = map[string]any{
+				"issuer":       parsed.Issuer,
+				"account_name": parsed.Account,
+				"secret":       parsed.Secret,
+				"algorithm":    parsed.Algorithm,
+				"digits":       parsed.Digits,
+				"period":       parsed.Period,
+				"type":         parsed.Type,
+				"counter":      parsed.Counter,
+			}
+		}
+	}
+
+	return res, nil
 }
 
 // Import endpoint

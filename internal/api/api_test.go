@@ -2,11 +2,15 @@ package api
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"strings"
 	"testing"
+
+	qrcode "github.com/skip2/go-qrcode"
 
 	"twofa-vault/pkg/vault"
 )
@@ -103,7 +107,31 @@ func TestAPI_Flow(t *testing.T) {
 		t.Fatal("expected non-empty PNG bytes")
 	}
 
-	// 6. Lock vault
+	// 6. QR decode-url test with generated QR PNG
+	qrPNG, err := qrcode.Encode("otpauth://totp/GitHub:testuser?secret=JBSWY3DPEHPK3PXP&issuer=GitHub", qrcode.Medium, 256)
+	if err != nil {
+		t.Fatalf("generate qr png failed: %v", err)
+	}
+
+	dataURI := "data:image/png;base64," + base64.StdEncoding.EncodeToString(qrPNG)
+	decodeReqBody, _ := json.Marshal(map[string]string{"url": dataURI})
+	req = httptest.NewRequest(http.MethodPost, "/api/qr/decode-url", bytes.NewReader(decodeReqBody))
+	w = httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("qr decode-url expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var decodeResp map[string]any
+	if err := json.Unmarshal(w.Body.Bytes(), &decodeResp); err != nil {
+		t.Fatalf("unmarshal decode resp failed: %v", err)
+	}
+	if !strings.Contains(decodeResp["text"].(string), "GitHub:testuser") {
+		t.Fatalf("expected GitHub:testuser in decoded text, got %v", decodeResp["text"])
+	}
+
+	// 7. Lock vault
 	req = httptest.NewRequest(http.MethodPost, "/api/vault/lock", nil)
 	w = httptest.NewRecorder()
 	mux.ServeHTTP(w, req)
