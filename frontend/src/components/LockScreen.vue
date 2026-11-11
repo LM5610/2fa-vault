@@ -55,7 +55,7 @@
             : 'border-slate-700 text-slate-400 hover:text-slate-200 bg-slate-800/50 hover:bg-slate-800'"
         >
           <Server :size="13" />
-          <span class="max-w-[200px] truncate">{{ serverUrl ? '已连接: ' + serverUrl : '设置后端服务地址 (手机/局域网连接)' }}</span>
+          <span class="max-w-[200px] truncate">{{ serverUrl ? '已连接: ' + serverUrl : '🔒 纯本地单机离线模式' }}</span>
           <Settings2 :size="12" class="opacity-70" />
         </button>
       </div>
