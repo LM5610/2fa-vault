@@ -30,6 +30,14 @@ type Vault struct {
 	passphrase  string
 	locked      bool
 	lockTimer   *time.Timer
+	onSaveHook  func()
+}
+
+// SetOnSaveHook registers a callback that is invoked after changes are saved to disk
+func (v *Vault) SetOnSaveHook(fn func()) {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+	v.onSaveHook = fn
 }
 
 // New creates a new Vault manager pointing to storagePath
@@ -703,6 +711,11 @@ func (v *Vault) saveUnlocked() error {
 	// Auto-create encrypted rolling snapshot
 	v.createSnapshot(encrypted)
 
+	if v.onSaveHook != nil {
+		hook := v.onSaveHook
+		go hook()
+	}
+
 	return nil
 }
 
@@ -841,5 +854,52 @@ func (v *Vault) RollbackSnapshot(filename string) error {
 	v.createSnapshot(encrypted)
 	v.resetAutoLockTimer()
 
+	if v.onSaveHook != nil {
+		hook := v.onSaveHook
+		go hook()
+	}
+
+	return nil
+}
+
+// RestoreEncryptedVault overwrites the vault with new encrypted data, creates a snapshot,
+// and reloads data if the vault is currently unlocked and decryptable with the current passphrase.
+func (v *Vault) RestoreEncryptedVault(data []byte) error {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
+	dir := filepath.Dir(v.storagePath)
+	_ = os.MkdirAll(dir, 0700)
+
+	tmp := v.storagePath + ".tmp"
+	if err := os.WriteFile(tmp, data, 0600); err != nil {
+		return err
+	}
+	if err := os.Rename(tmp, v.storagePath); err != nil {
+		_ = os.Remove(tmp)
+		return err
+	}
+
+	v.createSnapshot(data)
+
+	if !v.locked && v.passphrase != "" {
+		decrypted, err := crypto.Decrypt(data, v.passphrase)
+		if err == nil {
+			var valData VaultData
+			if jsonErr := json.Unmarshal(decrypted, &valData); jsonErr == nil {
+				v.data = &valData
+				v.resetAutoLockTimer()
+				return nil
+			}
+		}
+	}
+
+	v.locked = true
+	v.data = nil
+	v.passphrase = ""
+	if v.lockTimer != nil {
+		v.lockTimer.Stop()
+		v.lockTimer = nil
+	}
 	return nil
 }

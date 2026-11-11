@@ -1,4 +1,4 @@
-import type { Account, VaultStatus, OTPPreviewRequest, OTPPreviewResponse, QRDecodeResponse, SyncInfoResponse, SyncPairInitResponse, SnapshotInfo } from '../types/vault';
+import type { Account, VaultStatus, OTPPreviewRequest, OTPPreviewResponse, QRDecodeResponse, SyncInfoResponse, SyncPairInitResponse, SnapshotInfo, WebDAVConfig } from '../types/vault';
 
 export const getApiBaseUrl = (): string => {
   return localStorage.getItem('vault_api_server') || '';
@@ -67,6 +67,23 @@ export const API = {
   rollbackSnapshot: (filename: string) => request<{ success: boolean; message: string }>('/api/vault/snapshots/rollback', {
     method: 'POST',
     body: JSON.stringify({ filename }),
+  }),
+
+  // WebDAV Cloud Backup & Auto-Sync
+  getWebDAVConfig: () => request<WebDAVConfig>('/api/webdav/config'),
+  saveWebDAVConfig: (cfg: Partial<WebDAVConfig>) => request<{ success: boolean; message: string; config?: WebDAVConfig }>('/api/webdav/config', {
+    method: 'POST',
+    body: JSON.stringify(cfg),
+  }),
+  testWebDAV: (data?: { url?: string; username?: string; password?: string }) => request<{ success: boolean; message: string }>('/api/webdav/test', {
+    method: 'POST',
+    body: JSON.stringify(data || {}),
+  }),
+  backupWebDAV: () => request<{ success: boolean; message: string; last_sync?: string }>('/api/webdav/backup', {
+    method: 'POST',
+  }),
+  restoreWebDAV: () => request<{ success: boolean; message: string; locked?: boolean }>('/api/webdav/restore', {
+    method: 'POST',
   }),
 
   // LAN Direct Sync
