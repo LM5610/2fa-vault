@@ -47,7 +47,7 @@ export function useVault() {
       const res = await API.getStatus();
       status.value = res;
     } catch (err: any) {
-      showToast('连接后台服务失败，请确认服务已启动', true);
+      showToast('读取本地保险库状态失败: ' + err.message, true);
     }
   }
 

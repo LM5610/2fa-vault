@@ -73,19 +73,6 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/import", s.handleImport)
 	mux.HandleFunc("/api/export", s.handleExport)
 
-	// P2P LAN Direct Sync
-	mux.HandleFunc("/api/sync/info", s.handleSyncInfo)
-	mux.HandleFunc("/api/sync/pair/init", s.handleSyncPairInit)
-	mux.HandleFunc("/api/sync/pair/vault", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodGet {
-			s.handleSyncPairDownload(w, r)
-		} else if r.Method == http.MethodPost {
-			s.handleSyncPairUpload(w, r)
-		} else {
-			errorResponse(w, http.StatusMethodNotAllowed, "method not allowed")
-		}
-	})
-
 	// WebDAV Cloud Backup & Auto-Sync
 	mux.HandleFunc("/api/webdav/config", s.handleWebDAVConfig)
 	mux.HandleFunc("/api/webdav/test", s.handleWebDAVTest)

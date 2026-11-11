@@ -38,17 +38,6 @@ export interface TimeDriftResponse {
   error?: string;
 }
 
-export interface SyncInfoResponse {
-  lan_ips: string[];
-}
-
-export interface SyncPairInitResponse {
-  token: string;
-  expires_in: number;
-  pairing_url: string;
-  lan_ips: string[];
-}
-
 export interface VaultStatus {
   initialized: boolean;
   locked: boolean;

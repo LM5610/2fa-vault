@@ -4,8 +4,6 @@ import type {
   OTPPreviewRequest,
   OTPPreviewResponse,
   QRDecodeResponse,
-  SyncInfoResponse,
-  SyncPairInitResponse,
   SnapshotInfo,
   WebDAVConfig,
   TimeDriftResponse,
@@ -295,23 +293,6 @@ export const API = {
       return { success: true, message: '已从 WebDAV 云端恢复数据，请使用原主密码解锁', locked: true };
     }
     return remoteRequest<{ success: boolean; message: string; locked?: boolean }>('/api/webdav/restore', { method: 'POST' });
-  },
-
-  // LAN Direct Sync
-  getSyncInfo: () => remoteRequest<SyncInfoResponse>('/api/sync/info'),
-  initSyncPair: () => remoteRequest<SyncPairInitResponse>('/api/sync/pair/init', { method: 'POST' }),
-  downloadPairedVault: async (token: string): Promise<Blob> => {
-    const res = await fetch(`${getApiBaseUrl()}/api/sync/pair/vault?token=${encodeURIComponent(token)}`);
-    if (!res.ok) throw new Error('下载同步加密数据失败或配对码已失效');
-    return res.blob();
-  },
-  uploadPairedVault: async (token: string, data: Blob): Promise<{ success: boolean }> => {
-    const res = await fetch(`${getApiBaseUrl()}/api/sync/pair/vault?token=${encodeURIComponent(token)}`, {
-      method: 'POST',
-      body: data,
-    });
-    if (!res.ok) throw new Error('上传同步加密数据失败');
-    return res.json();
   },
 
   previewOTP: async (req: OTPPreviewRequest): Promise<OTPPreviewResponse> => {

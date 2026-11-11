@@ -49,14 +49,6 @@
         </button>
 
         <button
-          @click="$emit('open-sync')"
-          class="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-950/30 border border-slate-200 dark:border-slate-800 transition-colors"
-          title="PC ↔ 手机 局域网面对面同步"
-        >
-          <Wifi :size="18" />
-        </button>
-
-        <button
           @click="$emit('toggle-mini')"
           class="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:text-brand-500 hover:bg-slate-100 dark:hover:bg-slate-900 border border-slate-200 dark:border-slate-800 transition-colors"
           title="切换至桌面轻量小窗模式"
@@ -132,7 +124,7 @@
 </template>
 
 <script setup lang="ts">
-import { ShieldCheck, Plus, Search, ArrowUpDown, Sun, Moon, Settings, Lock, Wifi, Minimize2 } from 'lucide-vue-next';
+import { ShieldCheck, Plus, Search, ArrowUpDown, Sun, Moon, Settings, Lock, Minimize2 } from 'lucide-vue-next';
 import { useVault } from '../composables/useVault';
 import { useTheme } from '../composables/useTheme';
 import { getTagColor } from '../utils/tagColors';
@@ -140,7 +132,6 @@ import { getTagColor } from '../utils/tagColors';
 defineEmits<{
   (e: 'open-add'): void;
   (e: 'open-import-export'): void;
-  (e: 'open-sync'): void;
   (e: 'toggle-mini'): void;
   (e: 'open-settings'): void;
 }>();

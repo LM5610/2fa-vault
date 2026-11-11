@@ -12,7 +12,6 @@
         v-if="isUnlocked"
         @open-add="openAddModal(null)"
         @open-import-export="showImportExportModal = true"
-        @open-sync="showSyncModal = true"
         @toggle-mini="toggleMiniMode"
         @open-settings="showSettingsModal = true"
       />
@@ -107,8 +106,6 @@
 
     <ImportExportModal v-model="showImportExportModal" />
 
-    <SyncModal v-model="showSyncModal" />
-
     <!-- Fullscreen Drag & Drop Overlay Indicator (Only for external images/URLs) -->
     <DragOverlay :is-dragging="isGlobalDragging" />
 
@@ -128,7 +125,6 @@ import AddModal from './components/AddModal.vue';
 import QRModal from './components/QRModal.vue';
 import SettingsModal from './components/SettingsModal.vue';
 import ImportExportModal from './components/ImportExportModal.vue';
-import SyncModal from './components/SyncModal.vue';
 import DragOverlay from './components/DragOverlay.vue';
 import ToastContainer from './components/ToastContainer.vue';
 import type { Account } from './types/vault';
@@ -143,7 +139,6 @@ const isMiniMode = ref(new URLSearchParams(window.location.search).get('view') =
 const showAddModal = ref(false);
 const showSettingsModal = ref(false);
 const showImportExportModal = ref(false);
-const showSyncModal = ref(false);
 const accountToEdit = ref<Account | null>(null);
 const selectedAccountForQR = ref<Account | null>(null);
 const isGlobalDragging = ref(false);
@@ -332,7 +327,6 @@ function handleKeyDown(e: KeyboardEvent) {
     showAddModal.value = false;
     showSettingsModal.value = false;
     showImportExportModal.value = false;
-    showSyncModal.value = false;
     selectedAccountForQR.value = null;
   }
 }

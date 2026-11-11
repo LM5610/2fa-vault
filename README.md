@@ -164,13 +164,12 @@ pnpm dev       # 访问 http://localhost:5173，自动代理 /api 请求
 程序启动后会自动在终端打印访问信息，并在 0.3 秒内自动调用默认浏览器打开：
 ```text
 ================================================================
-  2FA Vault v1.0.0 - Secure Cross-Platform Authenticator
-  Modular Go Backend · AES-256-GCM + Argon2id · Windows & iOS PWA
+  2FA Vault v2.0.0 - 100% Pure Local Standalone Authenticator
+  AES-256-GCM + PBKDF2 · Zero Network Required · Windows / Linux / iOS
 ================================================================
-  • Local Access (Windows) : http://127.0.0.1:2233
-  • iOS / Mobile Access    : http://192.168.1.100:2233
-  • Encrypted Vault File   : data/vault.enc
-----------------------------------------------------------------
+  • Pure Local Storage    : Local Encrypted Sandbox
+  • Zero Network Required : 100% Offline Standalone Execution
+================================================================
 ```
 
 ### 3. 解析图片链接添加 2FA 令牌

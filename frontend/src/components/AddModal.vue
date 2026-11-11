@@ -493,7 +493,7 @@ async function decodeURL() {
   if (!url) return;
   isDecodingURL.value = true;
   showToast('正在获取并解析链接中的二维码...');
-  imageUrlPreview.value = url.startsWith('data:') ? url : `/api/proxy-image?url=${encodeURIComponent(url)}`;
+  imageUrlPreview.value = url;
 
   try {
     const res = await API.decodeImageURL(url);

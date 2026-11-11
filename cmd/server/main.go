@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -24,8 +23,8 @@ func main() {
 	// Lock OS thread for Win32 GUI message pump
 	runtime.LockOSThread()
 
-	portFlag := flag.Int("port", 2233, "HTTP server listening port")
-	hostFlag := flag.String("host", "0.0.0.0", "HTTP server listening host (0.0.0.0 allows iOS / LAN devices to connect)")
+	portFlag := flag.Int("port", 2233, "Local HTTP server port")
+	hostFlag := flag.String("host", "127.0.0.1", "Local listening host (defaults to 127.0.0.1 local loopback)")
 	dataFlag := flag.String("data", "data/vault.enc", "Path to encrypted vault data file")
 	headlessFlag := flag.Bool("headless", false, "Run in headless server/daemon mode (no desktop window)")
 	versionFlag := flag.Bool("version", false, "Show version and exit")
@@ -113,20 +112,4 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	_ = srv.Shutdown(ctx)
-}
-
-func getLocalIPs() []string {
-	var ips []string
-	addrs, err := net.InterfaceAddrs()
-	if err != nil {
-		return ips
-	}
-	for _, a := range addrs {
-		if ipnet, ok := a.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-			if ipnet.IP.To4() != nil {
-				ips = append(ips, ipnet.IP.String())
-			}
-		}
-	}
-	return ips
 }
