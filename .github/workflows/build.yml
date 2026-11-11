@@ -1,0 +1,206 @@
+name: Build & Package (Windows, Linux, iOS)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+    tags:
+      - 'v*'
+
+jobs:
+  # -------------------------------------------------------------
+  # Job 1: Build Windows .exe
+  # -------------------------------------------------------------
+  build-windows:
+    name: Build Windows Executable
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 12
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          check-latest: true
+
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: |
+          pnpm install --no-frozen-lockfile
+
+      - name: Build Frontend (Dist)
+        working-directory: frontend
+        run: |
+          pnpm run build
+
+      - name: Compile Windows Executable
+        run: |
+          go build -ldflags="-H=windowsgui -s -w" -o 2fa-vault-windows-amd64.exe ./cmd/server
+
+      - name: Upload Windows Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: 2FA-Vault-Windows-amd64
+          path: 2fa-vault-windows-amd64.exe
+          retention-days: 14
+
+  # -------------------------------------------------------------
+  # Job 2: Build Linux Binaries (amd64 & arm64)
+  # -------------------------------------------------------------
+  build-linux:
+    name: Build Linux Binaries
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 12
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          check-latest: true
+
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: |
+          pnpm install --no-frozen-lockfile
+
+      - name: Build Frontend (Dist)
+        working-directory: frontend
+        run: |
+          pnpm run build
+
+      - name: Compile Linux Binaries
+        run: |
+          mkdir -p bin
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o bin/2fa-vault-linux-amd64 ./cmd/server
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o bin/2fa-vault-linux-arm64 ./cmd/server
+          chmod +x bin/2fa-vault-linux-*
+
+      - name: Upload Linux Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: 2FA-Vault-Linux
+          path: bin/2fa-vault-linux-*
+          retention-days: 14
+
+  # -------------------------------------------------------------
+  # Job 3: Build iOS .ipa
+  # -------------------------------------------------------------
+  build-ios:
+    name: Build iOS IPA
+    runs-on: macos-14
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 12
+
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: |
+          pnpm install --no-frozen-lockfile
+          pnpm approve-builds --all || true
+
+      - name: Build Web Dist
+        working-directory: frontend
+        run: |
+          pnpm run build
+
+      - name: Sync Capacitor iOS
+        working-directory: frontend
+        run: |
+          npx cap sync ios
+
+      - name: Build iOS App with Xcode
+        working-directory: frontend/ios/App
+        run: |
+          xcodebuild clean archive \
+            -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath build/App.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES
+
+      - name: Package IPA
+        working-directory: frontend/ios/App
+        run: |
+          mkdir -p Payload
+          cp -r build/App.xcarchive/Products/Applications/App.app Payload/
+          zip -r -q 2FA-Vault.ipa Payload
+          ls -lh 2FA-Vault.ipa
+
+      - name: Upload iOS IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: 2FA-Vault-iOS
+          path: frontend/ios/App/2FA-Vault.ipa
+          retention-days: 14
+
+  # -------------------------------------------------------------
+  # Job 4: Release (Triggered on v* tag push)
+  # -------------------------------------------------------------
+  release:
+    name: Create GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build-windows, build-linux, build-ios]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download Windows Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: 2FA-Vault-Windows-amd64
+          path: release-assets/
+
+      - name: Download Linux Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: 2FA-Vault-Linux
+          path: release-assets/
+
+      - name: Download iOS Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: 2FA-Vault-iOS
+          path: release-assets/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/*
+          generate_release_notes: true
