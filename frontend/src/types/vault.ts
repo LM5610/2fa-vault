@@ -84,3 +84,15 @@ export interface SnapshotInfo {
   size_bytes: number;
   created_at: string;
 }
+
+export interface WebDAVConfig {
+  url: string;
+  username: string;
+  password?: string;
+  has_password?: boolean;
+  auto_sync: boolean;
+  remote_dir: string;
+  last_sync?: string;
+  last_status?: string;
+  last_error?: string;
+}

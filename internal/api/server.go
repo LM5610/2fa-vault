@@ -10,18 +10,22 @@ import (
 
 // Server handles RESTful API requests for 2FA vault
 type Server struct {
-	vault      *vault.Vault
-	httpClient *http.Client
+	vault       *vault.Vault
+	httpClient  *http.Client
+	webdavState *WebDAVState
 }
 
 // NewServer creates a new API Server instance
 func NewServer(v *vault.Vault) *Server {
-	return &Server{
+	s := &Server{
 		vault: v,
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
 		},
+		webdavState: &WebDAVState{},
 	}
+	s.initWebDAV()
+	return s
 }
 
 // RegisterRoutes registers all REST and SSE endpoints on mux with clean aliases
@@ -75,6 +79,12 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 			errorResponse(w, http.StatusMethodNotAllowed, "method not allowed")
 		}
 	})
+
+	// WebDAV Cloud Backup & Auto-Sync
+	mux.HandleFunc("/api/webdav/config", s.handleWebDAVConfig)
+	mux.HandleFunc("/api/webdav/test", s.handleWebDAVTest)
+	mux.HandleFunc("/api/webdav/backup", s.handleWebDAVBackup)
+	mux.HandleFunc("/api/webdav/restore", s.handleWebDAVRestore)
 }
 
 func jsonResponse(w http.ResponseWriter, status int, data any) {
