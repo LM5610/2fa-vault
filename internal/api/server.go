@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"twofa-vault/pkg/totp"
 	"twofa-vault/pkg/vault"
 )
 
@@ -12,6 +13,7 @@ import (
 type Server struct {
 	vault       *vault.Vault
 	httpClient  *http.Client
+	ntpClient   *totp.NTPClient
 	webdavState *WebDAVState
 }
 
@@ -22,6 +24,7 @@ func NewServer(v *vault.Vault) *Server {
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
 		},
+		ntpClient:   totp.NewNTPClient(),
 		webdavState: &WebDAVState{},
 	}
 	s.initWebDAV()
@@ -62,6 +65,9 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	// Real-time OTP & streaming
 	mux.HandleFunc("/api/otp/preview", s.handleOTPPreview)
 	mux.HandleFunc("/api/events", s.handleSSE)
+
+	// Time drift & clock synchronization
+	mux.HandleFunc("/api/time/drift", s.handleTimeDrift)
 
 	// Migration (Import & Export)
 	mux.HandleFunc("/api/import", s.handleImport)

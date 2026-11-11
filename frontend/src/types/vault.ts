@@ -22,10 +22,20 @@ export interface Account {
   order?: number;
   recovery_codes?: RecoveryCode[];
   code?: string;
+  next_code?: string;
   remaining?: number;
   progress?: number;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface TimeDriftResponse {
+  system_time: string;
+  network_time: string;
+  drift_seconds: number;
+  is_drifted: boolean;
+  source?: string;
+  error?: string;
 }
 
 export interface SyncInfoResponse {

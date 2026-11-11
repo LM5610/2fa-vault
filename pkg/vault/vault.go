@@ -263,6 +263,13 @@ func (v *Vault) ListAccounts(query, tag string) ([]AccountDTO, error) {
 			code = "ERR"
 		}
 
+		nextCode := ""
+		if acc.Type != totp.TypeHOTP {
+			if nc, err := totp.GenerateNextCode(opts, now); err == nil {
+				nextCode = nc
+			}
+		}
+
 		rem := totp.RemainingSeconds(acc.Period, now)
 		prog := totp.Progress(acc.Period, now)
 		if acc.Type == totp.TypeHOTP {
@@ -273,6 +280,7 @@ func (v *Vault) ListAccounts(query, tag string) ([]AccountDTO, error) {
 		results = append(results, AccountDTO{
 			Account:   acc,
 			Code:      code,
+			NextCode:  nextCode,
 			Remaining: rem,
 			Progress:  prog,
 		})

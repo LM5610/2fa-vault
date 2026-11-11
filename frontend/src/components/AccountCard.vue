@@ -1,5 +1,7 @@
 <template>
   <div
+    @mouseenter="isHovered = true"
+    @mouseleave="isHovered = false"
     class="group relative flex flex-col justify-between rounded-2xl border bg-white dark:bg-slate-900/90 p-5 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden"
     :class="account.pinned
       ? 'border-brand-500/50 shadow-brand-500/5 ring-1 ring-brand-500/20'
@@ -51,6 +53,19 @@
 
       <!-- Action Buttons -->
       <div class="flex items-center gap-1">
+        <!-- Next Code Preview Toggle Button -->
+        <button
+          v-if="hasNextCode"
+          @click="showManualNextPreview = !showManualNextPreview"
+          class="p-1.5 rounded-lg transition-colors"
+          :class="showNextPreview
+            ? 'text-amber-500 bg-amber-50 dark:bg-amber-950/40'
+            : 'text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800'"
+          title="下周期验证码（即将生效）"
+        >
+          <Zap :size="15" />
+        </button>
+
         <!-- Pin Toggle Button -->
         <button
           @click="togglePin"
@@ -166,6 +181,32 @@
       </div>
     </div>
 
+    <!-- Next Code Preview Banner (Auto-shown when remaining <= 5s, or on hover/toggle) -->
+    <div
+      v-if="showNextPreview"
+      @click.stop="copyNextCode"
+      class="mt-2.5 flex items-center justify-between px-3.5 py-2 rounded-xl transition-all duration-200 cursor-pointer select-none group/next shadow-sm"
+      :class="isExpiring
+        ? 'bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/40 text-amber-700 dark:text-amber-300'
+        : 'bg-slate-100/80 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60 text-slate-700 dark:text-slate-300 hover:border-amber-500/40 hover:bg-amber-50/50 dark:hover:bg-amber-950/20'"
+      title="下周期验证码（即将生效）"
+    >
+      <div class="flex items-center gap-2 min-w-0">
+        <Zap :size="13" class="text-amber-500 flex-shrink-0" :class="{ 'animate-pulse': isExpiring }" />
+        <span class="text-[11px] font-semibold text-slate-500 dark:text-slate-400">下周期:</span>
+        <span class="font-mono font-bold text-sm tracking-wider group-hover/next:text-amber-600 dark:group-hover/next:text-amber-400 transition-colors">
+          {{ formattedNextCode }}
+        </span>
+      </div>
+      <div class="flex items-center gap-1.5 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+        <span v-if="copiedNext" class="text-emerald-500 font-semibold animate-pulse">✓ 已复制</span>
+        <template v-else>
+          <span class="text-[10px] text-slate-400 dark:text-slate-500 group-hover/next:text-amber-500">点击复制</span>
+          <Copy :size="12" class="opacity-70 group-hover/next:opacity-100" />
+        </template>
+      </div>
+    </div>
+
     <!-- Emergency Recovery Codes Accordion Drawer -->
     <div v-if="hasRecoveryCodes" class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80">
       <button
@@ -230,7 +271,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { QrCode, Edit3, Trash2, RefreshCw, Pin, KeyRound, ChevronDown, Copy, Clock } from 'lucide-vue-next';
+import { QrCode, Edit3, Trash2, RefreshCw, Pin, KeyRound, ChevronDown, Copy, Clock, Zap } from 'lucide-vue-next';
 import type { Account } from '../types/vault';
 import { useVault } from '../composables/useVault';
 import { useToast } from '../composables/useToast';
@@ -253,9 +294,18 @@ const { nowSeconds, refreshAccounts } = useVault();
 const { showToast } = useToast();
 
 const copied = ref(false);
+const copiedNext = ref(false);
 const isIncrementing = ref(false);
 const showRecovery = ref(false);
 const imgFailed = ref(false);
+const isHovered = ref(false);
+const showManualNextPreview = ref(false);
+
+const hasNextCode = computed(() => !!props.account.next_code && props.account.type !== 'hotp');
+
+const showNextPreview = computed(() => {
+  return hasNextCode.value && (isExpiring.value || isHovered.value || showManualNextPreview.value);
+});
 
 const brandInfo = computed(() => getBrandLogo(props.account.issuer, props.account.account_name));
 
@@ -280,6 +330,14 @@ const avatarChar = computed(() => {
 
 const formattedCode = computed(() => {
   const c = props.account.code || '------';
+  if (c.length === 6) return `${c.slice(0, 3)} ${c.slice(3)}`;
+  if (c.length === 8) return `${c.slice(0, 4)} ${c.slice(4)}`;
+  return c;
+});
+
+const formattedNextCode = computed(() => {
+  const c = props.account.next_code || '';
+  if (!c) return '------';
   if (c.length === 6) return `${c.slice(0, 3)} ${c.slice(3)}`;
   if (c.length === 8) return `${c.slice(0, 4)} ${c.slice(4)}`;
   return c;
@@ -352,6 +410,23 @@ async function copyCode() {
     copied.value = true;
     setTimeout(() => {
       copied.value = false;
+    }, 2000);
+  }
+}
+
+async function copyNextCode() {
+  const raw = props.account.next_code || '';
+  if (!raw || raw === '------') return;
+
+  const success = await copyWithAutoClear(
+    raw,
+    `${displayTitle.value} 下周期验证码`,
+    showToast
+  );
+  if (success) {
+    copiedNext.value = true;
+    setTimeout(() => {
+      copiedNext.value = false;
     }, 2000);
   }
 }
