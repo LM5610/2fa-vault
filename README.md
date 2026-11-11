@@ -143,7 +143,7 @@ pnpm build     # 或 npm run build
 cd ..
 
 # 步骤 2：编译生成 Windows 独立单文件可执行程序 (无外部依赖，仅单个 .exe)
-go build -ldflags="-s -w" -o 2fa-vault.exe ./cmd/server
+go build -ldflags="-H=windowsgui -s -w" -o 2fa-vault.exe ./cmd/server
 ```
 
 前端开发模式 (支持热重载 HMR)：
