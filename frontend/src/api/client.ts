@@ -13,14 +13,30 @@ export const setApiBaseUrl = (url: string) => {
 };
 
 async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const fullUrl = endpoint.startsWith('http') ? endpoint : `${getApiBaseUrl()}${endpoint}`;
-  const res = await fetch(fullUrl, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
-  });
+  const baseUrl = getApiBaseUrl();
+  const fullUrl = endpoint.startsWith('http') ? endpoint : `${baseUrl}${endpoint}`;
+
+  let res: Response;
+  try {
+    res = await fetch(fullUrl, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers,
+      },
+    });
+  } catch (err: any) {
+    throw new Error(`无法连接到服务器 (${baseUrl || '本地服务'}): ${err.message || '网络连接超时'}`);
+  }
+
+  // Prevent WebKit "The string did not match the expected pattern" error when Capacitor serves index.html for unknown /api routes
+  const contentType = res.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    if (!baseUrl && (fullUrl.startsWith('capacitor://') || (typeof window !== 'undefined' && window.location.protocol === 'capacitor:'))) {
+      throw new Error('未连接到后端服务：请在下方点击【设置服务器】填入电脑服务端的局域网地址 (如 http://192.168.1.X:2233)');
+    }
+    throw new Error(`服务器响应异常: 返回了非 JSON 数据 (${res.status} ${res.statusText})，请检查服务器地址`);
+  }
 
   if (!res.ok) {
     let errorMsg = `HTTP Error ${res.status}`;
@@ -35,6 +51,16 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
 }
 
 export const API = {
+  testServerUrl: async (url: string): Promise<VaultStatus> => {
+    const cleanUrl = url.replace(/\/+$/, '');
+    const res = await fetch(`${cleanUrl}/api/status`, { headers: { 'Content-Type': 'application/json' } });
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      throw new Error('目标地址未运行 2FA Vault 后端服务 (返回非 JSON 响应)');
+    }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  },
   getStatus: () => request<VaultStatus>('/api/status'),
   initVault: (password: string) => request<{ status: string }>('/api/init', { method: 'POST', body: JSON.stringify({ password }) }),
   unlockVault: (password: string) => request<{ status: string }>('/api/unlock', { method: 'POST', body: JSON.stringify({ password }) }),

@@ -57,10 +57,25 @@ func main() {
 	webHandler := web.Handler()
 	mux.Handle("/", webHandler)
 
+	// Wrap mux with CORS middleware for mobile/LAN apps (e.g. iOS Capacitor & PWA)
+	corsHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, HEAD")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
+		w.Header().Set("Access-Control-Max-Age", "86400")
+
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		mux.ServeHTTP(w, r)
+	})
+
 	addr := fmt.Sprintf("%s:%d", *hostFlag, *portFlag)
 	srv := &http.Server{
 		Addr:         addr,
-		Handler:      mux,
+		Handler:      corsHandler,
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,
