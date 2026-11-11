@@ -88,14 +88,17 @@
       <div v-else class="space-y-4">
         <div>
           <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-            输入或粘贴 JSON 备份 / otpauth:// 列表
+            输入或粘贴 JSON 备份 / otpauth:// 列表 / Google Authenticator 迁移链接
           </label>
           <textarea
             v-model="importText"
             rows="5"
-            placeholder="粘贴 JSON 数据或多行 otpauth:// 链接..."
+            placeholder="粘贴 JSON 数据、多行 otpauth:// 链接或 Google Authenticator 导出的 otpauth-migration:// 迁移链接..."
             class="w-full px-3.5 py-2.5 rounded-xl text-xs font-mono bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 focus:border-brand-500 text-slate-900 dark:text-white outline-none"
           ></textarea>
+          <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-1.5">
+            支持 Aegis / 2FA Vault JSON、纯文本 otpauth:// 列表，以及 Google Authenticator (谷歌身份验证器) 导出的 <code class="font-mono text-brand-600 dark:text-brand-400">otpauth-migration://</code> 二维码链接批量导入。
+          </p>
         </div>
 
         <div class="flex items-center justify-between gap-3">

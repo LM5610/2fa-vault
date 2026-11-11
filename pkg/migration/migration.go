@@ -3,6 +3,7 @@ package migration
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"twofa-vault/pkg/totp"
@@ -39,9 +40,10 @@ type AegisInfo struct {
 }
 
 // ParseImportText inspects raw input text and parses accounts from either:
-// 1. Lines of otpauth:// URIs
+// 1. 2FA Vault native JSON format
 // 2. Aegis JSON format
-// 3. 2FA Vault native JSON format
+// 3. Google Authenticator migration URIs (otpauth-migration://)
+// 4. Lines of otpauth:// URIs
 func ParseImportText(raw []byte) ([]vault.Account, error) {
 	str := strings.TrimSpace(string(raw))
 
@@ -96,6 +98,53 @@ func ParseImportText(raw []byte) ([]vault.Account, error) {
 		}
 		if len(accounts) > 0 {
 			return accounts, nil
+		}
+	}
+
+	// Try Google Authenticator migration URIs
+	if strings.Contains(str, "otpauth-migration://") {
+		var accounts []vault.Account
+		var lastErr error
+		scanner := bufio.NewScanner(strings.NewReader(str))
+		for scanner.Scan() {
+			line := strings.TrimSpace(scanner.Text())
+			idx := strings.Index(line, "otpauth-migration://")
+			if idx == -1 {
+				// Check for standard otpauth:// in mixed inputs
+				if strings.HasPrefix(line, "otpauth://") {
+					if parsed, err := totp.ParseURI(line); err == nil {
+						accounts = append(accounts, vault.Account{
+							Issuer:      parsed.Issuer,
+							AccountName: parsed.Account,
+							Secret:      parsed.Secret,
+							Algorithm:   parsed.Algorithm,
+							Digits:      parsed.Digits,
+							Period:      parsed.Period,
+							Type:        parsed.Type,
+							Counter:     parsed.Counter,
+						})
+					}
+				}
+				continue
+			}
+
+			uriPart := line[idx:]
+			if endIdx := strings.IndexAny(uriPart, " \t\r\n\"'<>()[]"); endIdx != -1 {
+				uriPart = uriPart[:endIdx]
+			}
+
+			parsedAccs, err := ParseGoogleMigrationURI(uriPart)
+			if err != nil {
+				lastErr = err
+				continue
+			}
+			accounts = append(accounts, parsedAccs...)
+		}
+		if len(accounts) > 0 {
+			return accounts, nil
+		}
+		if lastErr != nil {
+			return nil, fmt.Errorf("failed to parse google migration URI: %w", lastErr)
 		}
 	}
 
