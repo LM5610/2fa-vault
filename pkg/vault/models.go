@@ -40,6 +40,7 @@ type AccountDTO struct {
 	Code      string  `json:"code"`
 	Remaining int     `json:"remaining"`
 	Progress  float64 `json:"progress"`
+	NextCode  string  `json:"next_code,omitempty"`
 }
 
 // VaultData represents the unencrypted contents of the vault

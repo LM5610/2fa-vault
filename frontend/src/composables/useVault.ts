@@ -15,6 +15,8 @@ const searchQuery = ref('');
 const activeTag = ref('');
 const nowSeconds = ref(Math.floor(Date.now() / 1000));
 const loading = ref(false);
+const timeDriftSeconds = ref<number>(0);
+const isTimeDrifted = ref(false);
 
 let timer: number | null = null;
 let lastStep = -1;
@@ -70,12 +72,30 @@ export function useVault() {
     } catch {}
   }
 
+  async function checkTimeDrift() {
+    try {
+      const res = await API.getTimeDrift();
+      if (res) {
+        timeDriftSeconds.value = Math.abs(res.drift_seconds);
+        if (res.is_drifted || Math.abs(res.drift_seconds) > 5) {
+          isTimeDrifted.value = true;
+          showToast(`⚠️ 检测到系统时钟偏差 ${Math.abs(res.drift_seconds).toFixed(1)} 秒，可能导致验证码计算错误，请校准系统时间`, true);
+        } else {
+          isTimeDrifted.value = false;
+        }
+      }
+    } catch {
+      // Quietly ignore network/offline issues
+    }
+  }
+
   async function unlock(password: string) {
     await API.unlockVault(password);
     await refreshStatus();
     await refreshAccounts();
     await refreshTags();
     showToast('保险库已解锁');
+    checkTimeDrift();
   }
 
   async function lock() {
@@ -91,6 +111,7 @@ export function useVault() {
     await refreshAccounts();
     await refreshTags();
     showToast('保险库已成功初始化并解锁');
+    checkTimeDrift();
   }
 
   // Start global synchronized clock tick
@@ -126,6 +147,9 @@ export function useVault() {
     loading,
     isUnlocked,
     filteredAccounts,
+    timeDriftSeconds,
+    isTimeDrifted,
+    checkTimeDrift,
     refreshStatus,
     refreshAccounts,
     refreshTags,

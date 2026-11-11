@@ -1,4 +1,4 @@
-import type { Account, VaultStatus, OTPPreviewRequest, OTPPreviewResponse, QRDecodeResponse, SyncInfoResponse, SyncPairInitResponse, SnapshotInfo } from '../types/vault';
+import type { Account, VaultStatus, OTPPreviewRequest, OTPPreviewResponse, QRDecodeResponse, SyncInfoResponse, SyncPairInitResponse, SnapshotInfo, TimeDriftResponse } from '../types/vault';
 
 export const getApiBaseUrl = (): string => {
   return localStorage.getItem('vault_api_server') || '';
@@ -87,6 +87,7 @@ export const API = {
   },
 
   previewOTP: (req: OTPPreviewRequest) => request<OTPPreviewResponse>('/api/otp/preview', { method: 'POST', body: JSON.stringify(req) }),
+  getTimeDrift: () => request<TimeDriftResponse>('/api/time/drift'),
   decodeImageURL: (url: string) => request<QRDecodeResponse>('/api/qr/decode-url', { method: 'POST', body: JSON.stringify({ url }) }),
   decodeImageFile: async (file: File): Promise<QRDecodeResponse> => {
     const formData = new FormData();

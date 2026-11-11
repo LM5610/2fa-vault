@@ -113,10 +113,13 @@ func (s *Server) handleOTPPreview(w http.ResponseWriter, r *http.Request) {
 		prog = 0
 	}
 
+	nextCode, _ := totp.GenerateNextCode(opts, now)
+
 	jsonResponse(w, http.StatusOK, map[string]any{
 		"valid":          true,
 		"code":           code,
 		"formatted_code": formatted,
+		"next_code":      nextCode,
 		"remaining":      rem,
 		"progress":       prog,
 		"period":         period,

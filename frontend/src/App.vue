@@ -20,6 +20,25 @@
       <!-- Main Content Area -->
       <main class="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 pb-16 safe-bottom">
         <div v-if="isUnlocked">
+          <!-- Clock Drift Warning Banner -->
+          <div
+            v-if="isTimeDrifted"
+            class="mb-4 p-3.5 rounded-xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 flex items-center justify-between text-amber-800 dark:text-amber-200 text-sm shadow-sm"
+          >
+            <div class="flex items-center gap-2.5 min-w-0">
+              <span class="text-base flex-shrink-0">⚠️</span>
+              <p class="font-medium text-xs sm:text-sm">
+                检测到系统时钟偏差 {{ timeDriftSeconds.toFixed(1) }} 秒，可能导致验证码计算错误，请校准系统时间
+              </p>
+            </div>
+            <button
+              @click="isTimeDrifted = false"
+              class="ml-3 px-2 py-1 text-xs font-semibold rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-900 dark:text-amber-100 transition-colors flex-shrink-0"
+            >
+              忽略
+            </button>
+          </div>
+
           <!-- Accounts Grid (Draggable & Reorderable) -->
           <div v-if="filteredAccounts.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div
@@ -117,7 +136,7 @@ import { useVault } from './composables/useVault';
 import { useToast } from './composables/useToast';
 import { API } from './api/client';
 
-const { isUnlocked, accounts, filteredAccounts, searchQuery, activeTag, refreshStatus, refreshAccounts, refreshTags, startClock, lock } = useVault();
+const { isUnlocked, accounts, filteredAccounts, searchQuery, activeTag, timeDriftSeconds, isTimeDrifted, checkTimeDrift, refreshStatus, refreshAccounts, refreshTags, startClock, lock } = useVault();
 const { showToast } = useToast();
 
 const isMiniMode = ref(new URLSearchParams(window.location.search).get('view') === 'mini');
@@ -333,6 +352,7 @@ onMounted(async () => {
     await refreshTags();
   }
   startClock();
+  checkTimeDrift();
 
   window.addEventListener('contextmenu', handleContextMenu);
   window.addEventListener('dragenter', handleDragEnter);
